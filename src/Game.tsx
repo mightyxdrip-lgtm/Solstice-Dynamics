@@ -3,12 +3,15 @@ import {ArrowRight,ArrowUp,ArrowDown,ArrowLeft,ChevronUp,Pause,Wind,Zap,Compass,
 import {World,lockView,type WorldInput,type FieldStatus,type Phase} from './World'
 import {fresh,validSave,current,type State} from './engine'
 import {Workshop} from './Workshop'
-import {enrollment,status} from './tasks'
+import {hardware} from './taskHardware'
+import {archive} from './science'
+import {enrollment,status,fieldAction} from './tasks'
 import {tone,ambience} from './sound'
 import {stationNames,type Zone,type Pose} from './navigation'
 import {Terminal,type TerminalEvent} from './Terminal'
 import {History} from './ui'
 import './game.css'
+import './service.css'
 
 const pilotKey='terravector.surface-pilot.v2',colonyKey='terravector.mars-control.v1'
 const locations={hab:'Habitat 01',green:'Greenhouse',water:'Water plant',outside:'Elysium Planitia'}
@@ -51,6 +54,7 @@ export function Game(){
  const [field,setField]=useState<FieldStatus>({zone:pilot.current.pose.zone,near:'',bearing:0,distance:-1,sprint:false})
  const [opened,setOpened]=useState(''),[confirm,setConfirm]=useState(false),[quality,setQuality]=useState<'economy'|'quality'>(()=>matchMedia('(pointer: coarse)').matches?'economy':'quality'),[online,setOnline]=useState(false)
  const [hint,setHint]=useState(''),[cycleText,setCycleText]=useState(''),[saved,setSaved]=useState(true),[started,setStarted]=useState(initial.existing),[,refresh]=useState(0)
+ const [toolHint,setToolHint]=useState('')
  const [bench,setBench]=useState(false),[sound,setSound]=useState(true)
  function signal(ok:boolean){if(sound)tone(ok?540:175)}
  const touch=useRef({side:0,forward:0}),persistTimer=useRef(0),fadeTimer=useRef<ReturnType<typeof setTimeout>|null>(null),hintTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
@@ -62,6 +66,15 @@ export function Game(){
  function pause(){if(mode.current!=='play')return;transition('pause');setConfirm(false);save()}
  function resume(){transition('play');setOpened('');lockView()}
  function setColony(next:State){state.current=next;setS(next);save()}
+ function operate(cmd:string,val=0){
+  const before=state.current
+  if(mode.current!=='terminal'||!bench||status(before).station!==opened)return false
+  const next=fieldAction(before,opened,cmd,val)
+  if(next===before){signal(false);setToolHint('Outside tolerance. Check the markings and try again.');return false}
+  setColony(next);signal(true)
+  setToolHint(next.fieldwork!.step!==before.fieldwork!.step?'Check passed.':cmd==='wire'?'Connection seated.':cmd==='tick'?'Stable reading recorded.':'Reading recorded.')
+  return true
+ }
  function progress(event:TerminalEvent){
   const pilotState=pilot.current
   const order=['life','suit','exit','solar','allocated','enterHab','review','advance']
@@ -94,7 +107,7 @@ export function Game(){
  function interact(focused?:string){if(mode.current!=='play')return;const id=typeof focused==='string'?focused:station.current;if(!id)return
   if(id==='exit'||id.startsWith('enter')){moveZone(id);return}
   const m=status(state.current)
-  setBench((id===m.station&&!m.complete)||['solarProbe','waterGauge','greenSensor'].includes(id));if(sound)tone(360)
+  setToolHint('');setBench((id===m.station&&!m.complete)||['solarProbe','waterGauge','greenSensor'].includes(id));if(sound)tone(360)
   transition('terminal');setOpened(id);save()
  }
  function restart(){if(fadeTimer.current)clearTimeout(fadeTimer.current);const next=enrollment(fresh());pilot.current=newPilot(next);state.current=next;setS(next);station.current='';setField({near:'',distance:-1,bearing:0,sprint:false,zone:'hab'});setStarted(true);setConfirm(false);setOpened('');setHint('');resume();save();notice('Junction J-2 is losing power. Equip your EVA suit.')}
@@ -113,11 +126,12 @@ export function Game(){
   }
   persistTimer.current+=seconds;if(persistTimer.current>2){save();persistTimer.current=0}
  }
- input.current={pose:p.pose,phase,state:s,quality,target:dest,station:opened,touch:touch.current,onUse:interact,onPause:pause,onReady:()=>setReady(true),onField:updateField,onControlHint:notice}
+ const mission=status(s),service=phase==='terminal'&&bench&&!mission.complete&&opened===mission.station,tool=service?hardware(s):null
+ input.current={service,onOperate:operate,onToolHint:setToolHint,pose:p.pose,phase,state:s,quality,target:dest,station:opened,touch:touch.current,onUse:interact,onPause:pause,onReady:()=>setReady(true),onField:updateField,onControlHint:notice}
  useEffect(()=>{if(location.protocol!=='file:')fetch('/api/advisor/status').then(r=>r.ok&&r.json()).then(v=>setOnline(v?.online===true)).catch(()=>{});const unload=()=>{if(mode.current!=='title')save()};window.addEventListener('pagehide',unload);return()=>{window.removeEventListener('pagehide',unload);if(fadeTimer.current)clearTimeout(fadeTimer.current);if(hintTimer.current)clearTimeout(hintTimer.current)}},[])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.code!=='Escape'||e.repeat)return;if(mode.current==='terminal'){e.preventDefault();resume()}else if(mode.current==='pause'&&phase==='pause'){e.preventDefault();setConfirm(false);resume()}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[phase])
  useEffect(()=>ambience(sound&&phase==='play'&&zone==='outside'?1.2-current(s).sun:0),[sound,zone,phase,s.sol])
- const mission=status(s),prep=s.sol===1?2:0,evad=p.stage>=3||zone==='outside',completed=mission.step+(prep?(Number(p.suited)+Number(evad)):0)
+ const prep=s.sol===1?2:0,evad=p.stage>=3||zone==='outside',completed=mission.step+(prep?(Number(p.suited)+Number(evad)):0)
  const checks=[...(prep?['Equip the EVA suit','Exit the habitat']:[]),...mission.checks]
  const heading=((Math.round(-p.pose.yaw*180/Math.PI)%360)+360)%360
  const padButton=(dir:string,axis:'side'|'forward',val:number,icon:React.ReactNode)=><button aria-label={'Move '+dir} onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);touch.current[axis]=val}} onPointerUp={()=>touch.current[axis]=0} onPointerCancel={()=>touch.current[axis]=0}>{icon}</button>
@@ -132,7 +146,10 @@ export function Game(){
  <div className="touch-pad">{padButton('forward','forward',1,<ArrowUp/>)}{padButton('left','side',-1,<ArrowLeft/>)}{padButton('back','forward',-1,<ArrowDown/>)}{padButton('right','side',1,<ArrowRight/>)}</div>
  {zone==='outside'&&(current(s).sun<.6||current(s).risk>2||p.oxygen<25||p.battery<25)&&<div className="hazard"><TriangleAlert size={13}/>{p.oxygen<25||p.battery<25?'Low suit reserve · return to an airlock':current(s).risk>2?'Solar particle alert':current(s).weather}</div>}</>}
  </>}
- {phase==='terminal'&&<Seat label={stationNames[opened]||'Terminal'}>{bench?<Workshop key={opened} id={opened} s={s} apply={setColony} close={resume} cue={signal}/>:<Terminal key={opened} id={opened} s={s} setS={setColony} onRecord={progress} onClose={resume} offlineOnline={online} suited={p.suited} inspectedLife={true} canAdvance={mission.complete}/>}</Seat>}
+ {service&&tool&&<><section className="service-caption"><small>{stationNames[opened]}　/　{mission.step+1} OF {mission.total}</small><h2>{tool.title}</h2><p>{tool.hint}</p></section>
+ <aside className="service-controls"><span role="status">{toolHint||tool.reading}</span><button onClick={resume}>Return to field ↗</button></aside>
+ <details className="service-help"><summary>Controls{s.sol===4&&mission.step===0?' & alert record':''}</summary><p>Grab and drag with a mouse or finger. With the canvas focused, Q/R selects a tool. Enter grabs or releases it. Arrow keys choose contacts, turn wheels or move handles.</p>{s.sol===4&&mission.step===0&&<p>{archive.flare.record} {archive.dose.context} · {archive.dose.record}</p>}</details></>}
+ {phase==='terminal'&&!service&&<Seat label={stationNames[opened]||'Terminal'}>{bench?<Workshop key={opened} id={opened} s={s} close={resume}/>:<Terminal key={opened} id={opened} s={s} setS={setColony} onRecord={progress} onClose={resume} offlineOnline={online} suited={p.suited} inspectedLife={true} canAdvance={mission.complete}/>}</Seat>}
  {phase==='cycle'&&<div className="cycling"><span>{cycleText}</span></div>}
  {phase==='pause'&&<Seat label="Mission paused"><section className="pause-menu"><small>ARES–01 / FLIGHT MENU</small><h2>Mission paused</h2><p>{goal.detail}</p><label>Field audio <input type="checkbox" checked={sound} onChange={e=>setSound(e.target.checked)}/></label><label>Graphics quality <select value={quality} onChange={e=>setQuality(e.target.value as 'quality'|'economy')}><option value="quality">High · shadows</option><option value="economy">Performance</option></select></label><p className="guidekeys">WASD to walk, Shift to sprint. Move the mouse to look. If your browser limits mouse capture, drag to look or use the arrow keys. Press E near equipment.</p><button className="enter" onClick={resume}>Return to field <ArrowRight/></button><button className="simple" onClick={()=>setConfirm(!confirm)}>{confirm?'Keep this mission':'Restart mission'}</button>{confirm&&<button className="danger" onClick={restart}>Replace this save and restart</button>}<small>{saved?'MISSION AUTOSAVED':'LOCAL STORAGE UNAVAILABLE'}</small></section></Seat>}
  {phase==='end'&&<Seat label="Mission debrief"><section className="pause-menu debrief"><small>ARES–01 / DEBRIEF</small><h2>{s.status==='success'?'Mission complete':'Mission ended'}</h2><p>{s.reason}</p><History s={s}/><details><summary>Decisions and consequences</summary>{s.log.map((l,i)=><p key={i}><strong>Sol {l.sol}</strong> · {l.text}</p>)}</details><button className="enter" onClick={restart}>Begin a new mission <ArrowRight/></button></section></Seat>}

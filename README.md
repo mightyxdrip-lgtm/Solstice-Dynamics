@@ -26,9 +26,11 @@ Click **Begin mission** on the rendered title screen. You wake up inside the hab
 
 Open the **History**, **Log**, **Manual** and **AURA** tabs at the habitat mission console. The pause menu provides graphics quality and a confirmed restart. Fresh colonies can use a tested strategy of extending the array on Sol 1, taking the first advisory response each sol and keeping the greenhouse in its safe band on Sol 3. Keep one spare for the worn seal.
 
+The field instruments are built into their 3D equipment. Drag the metal probe to each contact, seat the shaped cable plugs, turn handwheels, slide the greenhouse controls and pull the breaker handles. A handle or plug only engages within its marked travel or matching socket. For keyboard operation, focus the 3D view, select a tool with Q/R, grab it with Enter, move it with the arrow keys, and press Enter to release. Escape leaves the instrument.
+
 ## Surface operations
 
-Three.js, React Three Fiber and Drei render the exterior and three walkable interiors using WebGL 2. The camera stands at 1.62 m, with a 0.29 m collision radius. First-person movement uses substeps and sliding collisions against the structures and interior furnishings. Procedural terrain supplies the ground heights. The pressure cycle transfers the player between exterior and interior spaces. Graphics quality adjusts rendering resolution and shadows.
+Three.js, React Three Fiber and Drei render the exterior and three walkable interiors using WebGL 2. The camera stands at 1.62 m, with a 0.29 m collision radius. First-person movement uses substeps and sliding collisions against the structures and interior furnishings. Procedural terrain supplies the ground heights. The pressure cycle transfers the player between exterior and interior spaces. Graphics quality adjusts rendering resolution and shadows. The astronaut casts an articulated sun shadow near the outpost on High. A terrain-following suit silhouette provides a shadow indoors, at long range and in Performance mode.
 
 EVA oxygen and suit battery drain with elapsed play time outdoors. Sprinting increases both rates. Pressurized rooms refill the suit. An emergency return costs 6 kWh and 9 crew points. Opening a terminal or pausing suspends EVA consumption. The time compression and automatic return are training mechanics. Colony stores and weather advance one sol at a time. All four essential stores must stay above zero, crew condition at or above 60%, and equipment condition at or above 30%.
 

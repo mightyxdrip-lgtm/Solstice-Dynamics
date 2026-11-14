@@ -5,6 +5,9 @@ import {PerspectiveCamera} from '@react-three/drei/core/PerspectiveCamera.js'
 import {createTerrain,terrainHeight,boulderColliders} from './terrain'
 import {createBuildings} from './buildings'
 import {createInterior} from './interiors'
+import {mountServicePanel} from './servicePanel'
+import {hardware} from './taskHardware'
+import {createCrewShadow} from './crewShadow'
 import {surfaceProps} from './siteProps'
 import {current,type State} from './engine'
 import {nearestStation,walk,obstructed,outerBoxes,outerStations,outsideBounds,type Pose,type Zone,type Circle} from './navigation'
@@ -13,6 +16,7 @@ export type Phase='title'|'play'|'terminal'|'pause'|'cycle'|'end'
 export interface FieldStatus {near:string;distance:number;bearing:number;zone:Zone;sprint:boolean}
 export interface WorldInput {
  pose:Pose;phase:Phase;state:State;target:string;station:string;quality:'economy'|'quality'
+ service:boolean;onOperate:(cmd:string,v?:number)=>boolean;onToolHint:(text:string)=>void
  touch:{side:number;forward:number};onUse:(id?:string)=>void;onPause:()=>void
  onField:(f:FieldStatus,seconds:number)=>void;onReady:()=>void;onControlHint:(s:string)=>void
 }
@@ -84,7 +88,9 @@ function buildWorld(){
 const fieldKeys=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','ShiftLeft','ShiftRight'])
 function Scene({input}:{input:React.RefObject<WorldInput>}){
  const {scene,gl,size}=useThree()
- const [world]=useState(buildWorld)
+ const [world]=useState(buildWorld),[shadow]=useState(createCrewShadow)
+ const panel=useRef<ReturnType<typeof mountServicePanel>|null>(null),panelKey=useRef(''),panelState=useRef<State|null>(null),activePointer=useRef<number|null>(null)
+ const liveCamera=useRef<T.Camera|null>(null),shadowStamp=useRef(''),shadowTime=useRef(0)
  const key=useRef(new Set<string>()),clock=useRef({time:0,ui:0,bob:0,step:0}),lastState=useRef<State|null>(null),lastPhase=useRef<Phase|null>(null)
  const fog=useRef(new T.FogExp2(0xc69b7b,.007))
  useEffect(()=>{
@@ -92,10 +98,10 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
   const keys=key.current
   let dragging=false,lastX=0,lastY=0,lockedBefore=false
   const look=(dx:number,dy:number)=>{const a=input.current;if(a.phase!=='play')return;a.pose.yaw-=dx*.0024;a.pose.pitch=T.MathUtils.clamp(a.pose.pitch-dy*.0022,-1.34,1.34)}
-  function onDown(e:PointerEvent){if(input.current.phase!=='play')return;dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.focus();canvas.setPointerCapture(e.pointerId);if(e.pointerType==='mouse')lockView()}
-  function onMove(e:PointerEvent){if(document.pointerLockElement===canvas){look(e.movementX,e.movementY)}else if(dragging){look(e.clientX-lastX,e.clientY-lastY);lastX=e.clientX;lastY=e.clientY}}
-  function release(){dragging=false}
-  function keyDown(e:KeyboardEvent){const a=input.current;if(a.phase!=='play')return
+  function onDown(e:PointerEvent){if(input.current.service&&panel.current&&liveCamera.current){if(activePointer.current===null){activePointer.current=e.pointerId;panel.current.down(e,canvas,liveCamera.current)}return}if(input.current.phase!=='play')return;dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.focus();canvas.setPointerCapture(e.pointerId);if(e.pointerType==='mouse')lockView()}
+  function onMove(e:PointerEvent){if(input.current.service&&panel.current&&liveCamera.current){if(activePointer.current===null||activePointer.current===e.pointerId)panel.current.move(e,canvas,liveCamera.current);return}if(document.pointerLockElement===canvas){look(e.movementX,e.movementY)}else if(dragging){look(e.clientX-lastX,e.clientY-lastY);lastX=e.clientX;lastY=e.clientY}}
+  function release(e:PointerEvent){dragging=false;if(e.pointerId===activePointer.current){if(e.type==='pointercancel')panel.current?.cancel();else panel.current?.finish();activePointer.current=null;canvas.style.cursor='default'}}
+  function keyDown(e:KeyboardEvent){const a=input.current;if(a.service&&panel.current&&e.target===canvas&&panel.current.keyboard(e)){e.preventDefault();return}if(a.phase!=='play')return
    if(fieldKeys.has(e.code)){keys.add(e.code);e.preventDefault()}
    if(e.code==='KeyE'&&!e.repeat){a.onUse(nearestStation(a.pose,a.pose.zone==='outside'?outerStations:world.rooms[a.pose.zone].stations));e.preventDefault()}
    if(e.code==='Escape'&&!e.repeat){a.onPause();e.preventDefault()}
@@ -109,6 +115,7 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
   document.addEventListener('pointerlockchange',lockChanged);document.addEventListener('pointerlockerror',lockDenied)
   input.current.onReady()
   return()=>{canvas.removeEventListener('pointerdown',onDown);window.removeEventListener('pointermove',onMove);window.removeEventListener('pointerup',release);window.removeEventListener('pointercancel',release);window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',blur);document.removeEventListener('pointerlockchange',lockChanged);document.removeEventListener('pointerlockerror',lockDenied)
+  panel.current?.dispose();panel.current=null;shadow.dispose()
   const materials=new Set<T.Material>(),textures=new Set<T.Texture>()
   for(const root of [world.exterior,...Object.values(world.rooms).map(r=>r.group)])root.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.Points){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])materials.add(m)}})
   for(const m of materials){for(const t of Object.values(m))if(t instanceof T.Texture)textures.add(t);m.dispose()}for(const t of textures)t.dispose();world.sun.shadow.dispose()
@@ -117,6 +124,20 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
  useFrame(({camera},dt)=>{
   const a=input.current,p=a.pose,st=clock.current,delta=Math.min(dt,.065),title=a.phase==='title'
   if(lastPhase.current!==a.phase){key.current.clear();st.ui=0;lastPhase.current=a.phase}
+  liveCamera.current=camera
+  const serviceKey=a.service?a.station+'/'+a.state.sol+'/'+a.state.fieldwork?.step:''
+  if(panelKey.current!==serviceKey){
+   if(panel.current){scene.remove(panel.current.root);panel.current.dispose();panel.current=null}
+   gl.domElement.style.cursor='';activePointer.current=null;panelKey.current=serviceKey
+   if(serviceKey){
+    panel.current=mountServicePanel(a.station,hardware(a.state),(cmd,v)=>input.current.onOperate(cmd,v),msg=>input.current.onToolHint(msg))
+    scene.add(panel.current.root);panelState.current=a.state;gl.domElement.focus({preventScroll:true})
+   }
+  }
+  if(panel.current&&a.state!==panelState.current){panel.current.sync(hardware(a.state));panelState.current=a.state}
+  const cast=!title&&a.phase!=='end'&&p.zone==='outside'&&a.quality==='quality'&&Math.hypot(p.x,p.z)<26
+  if(shadow.body.visible!==cast){world.sun.shadow.needsUpdate=true;shadow.body.visible=cast}
+  shadow.mesh.visible=!cast&&!title&&a.phase!=='end'
   world.marker.visible=world.halo.visible=false
   const exterior=title||p.zone==='outside'
   world.exterior.visible=exterior
@@ -127,7 +148,7 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
    const weather=current(a.state);world.models.update(a.state);world.sun.intensity=1.2+weather.sun*2.7;world.sun.shadow.needsUpdate=true
    fog.current.density=.0038+(1-weather.sun)*.035;world.sky.material.uniforms.haze.value=1-weather.sun
    const f=a.state.fieldwork
-   world.jumpers.forEach((lead,i)=>lead.visible=f?.solar==='repaired'||!!((f?.plugs||0)&(1<<i)))
+   
    for(const name of ['green','water'] as const){
     const lamp=world.rooms[name].group.getObjectByName('processLight') as T.Mesh<T.BufferGeometry,T.MeshBasicMaterial>
     lamp.material.color.setHex(name==='water'?(f?.pump===4?0x7dffc2:0xff9e57):((f?.dwell||0)>=4?0x7dffc2:0xffa464))
@@ -136,6 +157,7 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
    world.dust.material.opacity=.12+(1-weather.sun)*.82;lastState.current=a.state
   }
   const fault=a.state.fieldwork?.solar
+  world.jumpers.forEach((lead,i)=>lead.visible=!(a.service&&a.station==='solarProbe')&&(fault==='repaired'||!!((a.state.fieldwork?.plugs||0)&(1<<i))))
   for(const lamp of world.lamps)lamp.material.color.setHex(fault==='repaired'?0x88ffbc:fault==='isolated'?0xffba55:Math.sin(st.time*6)>.1?0xff562d:0x743126)
   if(!exterior){const room=world.rooms[p.zone as 'hab'|'water'|'green'];for(const door of room.group.children){if(door.name==='airlockLeaf')door.position.x=T.MathUtils.damp(door.position.x,a.phase==='cycle'?door.userData.side*.97:0,5,dt)}}
   if(title||a.phase==='play'){st.time+=delta;world.models.animate(st.time);world.dust.position.x=Math.sin(st.time*.17)*3;world.dust.position.z=Math.cos(st.time*.14)}
@@ -170,6 +192,12 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
     a.onField({near:nearestStation(p,stations),distance:goal?Math.hypot(goal.x-p.x,goal.z-p.z):-1,bearing,zone:p.zone,sprint},Math.min(st.ui,.4));st.ui=0
    }
   }
+  if(cast){
+   shadow.poseBody(p,st.step,st.bob);shadowTime.current+=dt
+   if(shadowTime.current>=.085){const stamp=[p.x,p.z,p.yaw,Math.sin(st.step)*st.bob].map(n=>Math.round(n*60)).join(',')
+    if(shadowStamp.current!==stamp){world.sun.shadow.needsUpdate=true;shadowStamp.current=stamp}shadowTime.current=0}
+  }else if(shadow.mesh.visible)shadow.update(p,st.step,st.bob,current(a.state).sun)
+  if(panel.current){panel.current.cameraView(camera,size.width/size.height);panel.current.tick(dt);return}
   if(a.phase==='terminal'&&p.zone==='outside'&&(a.station==='solarProbe'||a.station==='solar')){
    const test=a.station==='solarProbe',z=test?3.9:7.35
    camera.position.set(-4.46,1.71,z-1.62)
@@ -178,7 +206,7 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
   const floor=p.zone==='outside'?terrainHeight(p.x,p.z):0
   camera.position.set(p.x,floor+1.62+Math.sin(st.step)*.027*st.bob,p.z);camera.rotation.order='YXZ';camera.rotation.set(p.pitch,p.yaw,0)
  })
- return <><PerspectiveCamera makeDefault fov={65} near={.045} far={600}/><primitive object={world.marker}/><primitive object={world.halo}/><primitive object={world.exterior}/>{Object.values(world.rooms).map(r=><primitive object={r.group} key={r.group.uuid}/>)}</>
+ return <><PerspectiveCamera makeDefault fov={65} near={.045} far={600}/><primitive object={shadow.body}/><primitive object={shadow.mesh}/><primitive object={world.marker}/><primitive object={world.halo}/><primitive object={world.exterior}/>{Object.values(world.rooms).map(r=><primitive object={r.group} key={r.group.uuid}/>)}</>
 }
 const roomBackground=new T.Color(0x182026)
 class RenderError extends React.Component<{children:React.ReactNode},{failed:boolean}>{
