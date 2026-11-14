@@ -136,10 +136,11 @@ export function createInterior(kind: InteriorKind): Interior {
     box(0,1.82,7.49,2.8,3.65,.15,frame)
     box(0,1.4,7.35,2.23,2.82,.20,dark)
     for (const side of [-1,1]) {
-      box(side*.479,1.38,7.205,.935,2.51,.16,lining)
-      box(side*.57,1.78,7.110,.49,.41,.04,graphite)
-      box(side*.57,1.78,7.083,.40,.32,.025,material('#485957',.50))
-      box(side*.35,.55,7.113,.58,.07,.04,terra)
+      const door=new THREE.Group();door.name='airlockLeaf';door.userData.side=side
+      for(const [x,y,z,w,h,d,mat] of [[.479,1.38,7.205,.935,2.51,.16,lining],[.57,1.78,7.110,.49,.41,.04,graphite],[.57,1.78,7.083,.40,.32,.025,material('#485957',.50)],[.35,.55,7.113,.58,.07,.04,terra]] as const){
+        const face=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);face.position.set(side*x,y,z);door.add(face)
+      }
+      group.add(door)
       box(side*1.10,1.36,7.158,.064,2.27,.10,ochre)
     }
     box(0,2.90,7.15,1.36,.065,.12,lamp)
@@ -272,6 +273,18 @@ export function createInterior(kind: InteriorKind): Interior {
     consoleAt('reports','MISSION REPORTS',3.75,-4.48,'#f2ad6e')
   } else if(kind==='green') cropRacks()
   else waterPlant()
+  if(kind!=='hab'){
+    const water=kind==='water',x=water?-2.7:2.19,z=2.69
+    const pilotLight=new THREE.Mesh(new THREE.SphereGeometry(.069,12,8),new THREE.MeshBasicMaterial({color:0xe5a368}));pilotLight.position.set(x,1.56,z+.11);pilotLight.name='processLight';group.add(pilotLight)
+    stations.push({id:water?'waterGauge':'greenSensor',x,z:z+.38})
+    box(x,1.32,z,.73,.54,.17,graphite)
+    for(const sign of [-1,1]){
+      ball(x+.17*sign,1.36,z+.10,.116,.116,.033,water?jacket:diode)
+      box(x+.17*sign,1.38,z+.142,.015,.128,.013,terra,0,0,sign*.56)
+      pipe([x+.2*sign,1.07,z],[x+.2*sign,.45,z],.039,aluminum)
+    }
+    placard(water?'DP-2   /   FILTER':'03   /   ROOT BED',x,1.74,z+.08,1.12,.20)
+  }
   for(const [m,geometries] of pieces) {
     const merged=mergeGeometries(geometries)
     if(merged) {

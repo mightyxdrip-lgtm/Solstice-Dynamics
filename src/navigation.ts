@@ -8,12 +8,12 @@ export const outsideBounds:Bounds={minX:-120,maxX:120,minZ:-120,maxZ:120}
 export const outerStations=[
  {id:'enterHab',x:-8,z:1.4}, {id:'enterWater',x:8.55,z:-6.65},
  {id:'enterGreen',x:6,z:8.32}, {id:'solar',x:-5.55,z:7.35},
- {id:'shelter',x:0,z:-8.8}
+ {id:'solarProbe',x:-5.55,z:3.9}, {id:'shelter',x:0,z:-8.8}
 ]
 export const outerBoxes:Box[]=[
  {x:10,z:-9,hx:3.48,hz:2.22},{x:0,z:-12,hx:2.5,hz:2.85},
  {x:-8,z:.36,hx:.82,hz:.47},{x:6,z:7.6,hx:.84,hz:.48},
- {x:-5.55,z:7.35,hx:.42,hz:.28},
+ {x:-5.55,z:3.9,hx:.45,hz:.27}, {x:-5.55,z:7.35,hx:.42,hz:.28},
  {x:12.5,z:1,hx:1.3,hz:.85}
 ]
 for(const x of [-11.78,-8.22])for(const z of [5.86,8.2,10.54])outerBoxes.push({x,z,hx:1.6,hz:.93})
@@ -38,7 +38,7 @@ export function walk(p:Pose,side:number,forward:number,meters:number,blocked:(x:
  }
  return Math.hypot(p.x-startX,p.z-startZ)
 }
-export const stationNames:Record<string,string>={life:'Life-support console',suit:'EVA suit rack',reports:'Mission console',exit:'Cycle airlock',enterHab:'Habitat airlock',enterWater:'Water plant airlock',enterGreen:'Greenhouse airlock',solar:'Solar power terminal',shelter:'Shelter controls',water:'Water processor',green:'Greenhouse controls'}
+export const stationNames:Record<string,string>={solarProbe:'J-2 array junction',waterGauge:'Differential pressure taps',greenSensor:'Bed 03 sensor head',life:'Life-support console',suit:'EVA suit rack',reports:'Mission console',exit:'Cycle airlock',enterHab:'Habitat airlock',enterWater:'Water plant airlock',enterGreen:'Greenhouse airlock',solar:'Solar power terminal',shelter:'Shelter controls',water:'Water processor',green:'Greenhouse controls'}
 export function nearestStation(p:Pose,stations:{id:string,x:number,z:number}[]){
  let nearest='',best=2.7
  for(const s of stations){

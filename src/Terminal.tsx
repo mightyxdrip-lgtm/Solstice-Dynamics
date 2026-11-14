@@ -6,6 +6,7 @@ import {
   type Reserves, type State,
 } from './engine'
 import { Advisor, History, Log, Manual, colors, labels } from './ui'
+import {Science} from './science'
 import './terminal.css'
 
 export type TerminalEvent = 'life' | 'suit' | 'solar' | 'allocated' | 'review' | 'advance'
@@ -207,7 +208,7 @@ function Station({ id, s, setS, onClose, onRecord, offlineOnline, canAdvance, su
         </> : <><h3>{s.status==='success'?'Seven-sol mission complete':'Mission ended'}</h3><p>{s.reason}</p><History s={s}/></>)}
         {tab === 'Supplies' && <>{supplyInfo}{workOrder('repair')}{workOrder('survey')}{s.investigated && <p>{forecast(s)}</p>}</>}
         {tab === 'History' && <History s={s}/>}
-        {tab === 'Log' && <Log s={s}/>}
+        {tab === 'Log' && <><Log s={s}/>{Array.from({length:s.done+(canAdvance&&active?1:0)},(_,i)=><details key={i}><summary>Sol {i+1} · field science</summary><Science sol={i+1}/></details>)}</>}
         {tab === 'Manual' && <Manual/>}
         {tab === 'AURA' && <Advisor s={s} online={offlineOnline}/>}
       </>}

@@ -18,13 +18,13 @@ Open **http://127.0.0.1:4173**. The included production build runs without a pac
 
 Click **Begin mission** on the rendered title screen. You wake up inside the habitat. Walk with WASD, look with the mouse, hold Shift to sprint and press E near the equipment you are facing. Escape pauses the mission and releases mouse capture. Arrow keys or click-and-drag also turn the view. Touch devices have movement buttons, drag-look and a tap-to-interact prompt.
 
-1. Inspect life support, then walk to the EVA rack and equip your suit.
+1. Follow the helmet marker to the EVA rack and equip your suit.
 2. Follow the objective bearing to the airlock at the far end of the corridor. Cycle it and walk to the solar array.
-3. Diagnose the array. Set and apply its power priority. An optional array extension immediately spends 3 kWh and two spares, adds a physical rack and increases clear-sky capacity by 8 kWh per sol.
+3. Sample all three strings at junction J-2, identify the failed relay, then match both jumper leads or isolate the bad string. Walk to the separate power bus, match the load tester to the meter and dispatch the available power. An optional array extension immediately spends 3 kWh and two spares, adds a physical rack and increases clear-sky capacity by 8 kWh per sol.
 4. Return through the habitat airlock. At the mission console, review the shift, respond to the advisory and advance the sol.
-5. Each later sol assigns a field inspection. Enter the water plant or greenhouse through its pressure door, or work outside at the array or shelter. Return to the mission console for handover.
+5. Later shifts require pressure-tap diagnosis, filter bypass adjustment, greenhouse lamp and irrigation control, shelter preparation, seal testing and final commissioning. The mission console accepts a handover after the field checks pass and an advisory response is selected. See [Field science and provenance](SCIENCE.md) for the data behind each mission.
 
-Open the **History**, **Log**, **Manual** and **AURA** tabs at the habitat mission console. The pause menu provides graphics quality and a confirmed restart. Fresh colonies can use a tested strategy of extending the array on Sol 1, taking the first advisory response each sol and reducing irrigation starting on Sol 3. Keep one spare for the worn seal.
+Open the **History**, **Log**, **Manual** and **AURA** tabs at the habitat mission console. The pause menu provides graphics quality and a confirmed restart. Fresh colonies can use a tested strategy of extending the array on Sol 1, taking the first advisory response each sol and keeping the greenhouse in its safe band on Sol 3. Keep one spare for the worn seal.
 
 ## Surface operations
 

@@ -268,10 +268,10 @@ export function createBuildings(){
     rack.drum(alloy,[x,.67,z],.128,.20,.99,12)
     rack.rod(ochre,[x-.64,1.11,z],[x+.64,1.11,z],.115)
     for(const side of [-1,1])rack.rod(titanium,[x,.68,z],[x+side*1.02,1.13,z],.055)
-    const tilt=-.37
-    rack.box(alloy,[x,1.31,z],[3.18,.12,1.97],[tilt,0,0])
-    rack.add(new T.PlaneGeometry(3.11,1.90),pv,[x,1.381,z-.026],[-Math.PI/2+tilt,0,0])
-    return rack.finish()
+    const support=rack.finish(),table=new Assembly(),tilt=-.37
+    table.box(alloy,[0,0,0],[3.18,.12,1.97],[tilt,0,0])
+    table.add(new T.PlaneGeometry(3.11,1.90),pv,[0,.071,-.026],[-Math.PI/2+tilt,0,0])
+    const panel=table.finish();panel.name='collector';panel.position.set(x,1.31,z);support.add(panel);return support
   }
   const solar=new T.Group()
   for(const x of [-1.78,1.78])for(const z of [-2.14,.20,2.54])solar.add(panelRack(x,z))
@@ -326,8 +326,10 @@ export function createBuildings(){
   const fan=new Assembly()
   for(let i=0;i<5;i++){const a=i*tau/5;fan.box(graphite,ringPoint(.24,0,a),[.145,.055,.38],[0,a+.25,0])}
   const rotor=fan.finish();rotor.position.set(-.2,4.71,-1.92);modules[0].add(rotor)
-  let fanRate=1
+  const faultPanels=[solar.children[1],solar.children[4]].map(g=>g.getObjectByName('collector')!)
+  let targetTilt=0,fanRate=1
   function update(state:State) {
+    targetTilt=state.fieldwork?.solar==='repaired'?0:-.70
     const requested=Math.max(0,Math.min(14,Math.trunc(state.solar)))
     while(solarExtensions.length<requested){
       const i=solarExtensions.length
@@ -340,7 +342,7 @@ export function createBuildings(){
     window.emissiveIntensity=state.settings.air==='eco'?.13:.34
     fanRate=state.status==='failure'?0:state.settings.air==='eco'?.65:1.5
   }
-  function animate(time:number){rotor.rotation.y=time*fanRate}
+  function animate(time:number){rotor.rotation.y=time*fanRate;for(const panel of faultPanels)panel.rotation.x+=(targetTilt-panel.rotation.x)*.12}
   return {modules,update,animate}
 }
 

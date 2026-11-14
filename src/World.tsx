@@ -12,8 +12,8 @@ import {nearestStation,walk,obstructed,outerBoxes,outerStations,outsideBounds,ty
 export type Phase='title'|'play'|'terminal'|'pause'|'cycle'|'end'
 export interface FieldStatus {near:string;distance:number;bearing:number;zone:Zone;sprint:boolean}
 export interface WorldInput {
- pose:Pose;phase:Phase;state:State;target:string;quality:'economy'|'quality'
- touch:{side:number;forward:number};onUse:()=>void;onPause:()=>void
+ pose:Pose;phase:Phase;state:State;target:string;station:string;quality:'economy'|'quality'
+ touch:{side:number;forward:number};onUse:(id?:string)=>void;onPause:()=>void
  onField:(f:FieldStatus,seconds:number)=>void;onReady:()=>void;onControlHint:(s:string)=>void
 }
 export function lockView(){
@@ -43,6 +43,13 @@ function makeSky(){
  dome.renderOrder=-10
  return dome
 }
+function beacon(){
+ const c=document.createElement('canvas');c.width=128;c.height=128;const g=c.getContext('2d')!
+ g.lineJoin='round';g.beginPath();g.moveTo(64,13);g.lineTo(104,53);g.lineTo(64,93);g.lineTo(24,53);g.closePath();g.fillStyle='#252821df';g.fill();g.strokeStyle='#ffbb76';g.lineWidth=6;g.stroke();g.fillStyle='#ffcc92';g.fillRect(58,43,12,20);g.fillRect(62,95,4,21)
+ const texture=new T.CanvasTexture(c);texture.colorSpace=T.SRGBColorSpace
+ const sprite=new T.Sprite(new T.SpriteMaterial({map:texture,depthTest:false,depthWrite:false,toneMapped:false}));sprite.renderOrder=9
+ return sprite
+}
 function buildWorld(){
  const exterior=new T.Group(),models=createBuildings(),sky=makeSky()
  exterior.add(createTerrain(),...models.modules,surfaceProps(),sky)
@@ -68,7 +75,11 @@ function buildWorld(){
   const n=Math.ceil(Math.hypot(bx-ax,bz-az)/.48)
   for(let i=0;i<=n;i++)circles.push({x:ax+(bx-ax)*i/n,z:az+(bz-az)*i/n,radius:.69})
  }
- return {exterior,models,rooms,sun,sky,dust,circles}
+ const marker=beacon(),halo=new T.Mesh(new T.RingGeometry(.62,.67,40),new T.MeshBasicMaterial({color:0xffbb75,transparent:true,opacity:.8,side:T.DoubleSide,depthWrite:false}))
+ halo.rotation.x=-Math.PI/2
+ const lamps:T.Mesh<T.BufferGeometry,T.MeshBasicMaterial>[]=[];exterior.traverse(o=>{if(o.name==='relayLight')lamps.push(o as typeof lamps[number])})
+ const jumpers=[exterior.getObjectByName('jumper0')!,exterior.getObjectByName('jumper1')!]
+ return {exterior,models,rooms,sun,sky,dust,circles,marker,halo,lamps,jumpers}
 }
 const fieldKeys=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','ShiftLeft','ShiftRight'])
 function Scene({input}:{input:React.RefObject<WorldInput>}){
@@ -86,7 +97,7 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
   function release(){dragging=false}
   function keyDown(e:KeyboardEvent){const a=input.current;if(a.phase!=='play')return
    if(fieldKeys.has(e.code)){keys.add(e.code);e.preventDefault()}
-   if(e.code==='KeyE'&&!e.repeat){a.onUse();e.preventDefault()}
+   if(e.code==='KeyE'&&!e.repeat){a.onUse(nearestStation(a.pose,a.pose.zone==='outside'?outerStations:world.rooms[a.pose.zone].stations));e.preventDefault()}
    if(e.code==='Escape'&&!e.repeat){a.onPause();e.preventDefault()}
   }
   function keyUp(e:KeyboardEvent){keys.delete(e.code)}
@@ -106,6 +117,7 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
  useFrame(({camera},dt)=>{
   const a=input.current,p=a.pose,st=clock.current,delta=Math.min(dt,.065),title=a.phase==='title'
   if(lastPhase.current!==a.phase){key.current.clear();st.ui=0;lastPhase.current=a.phase}
+  world.marker.visible=world.halo.visible=false
   const exterior=title||p.zone==='outside'
   world.exterior.visible=exterior
   for(const [name,room] of Object.entries(world.rooms))room.group.visible=!exterior&&p.zone===name
@@ -113,9 +125,19 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
   scene.background=exterior?null:roomBackground
   if(lastState.current!==a.state){
    const weather=current(a.state);world.models.update(a.state);world.sun.intensity=1.2+weather.sun*2.7;world.sun.shadow.needsUpdate=true
-   fog.current.density=.0038+(1-weather.sun)*.015;world.sky.material.uniforms.haze.value=1-weather.sun
-   world.dust.material.opacity=(1-weather.sun)*.55;lastState.current=a.state
+   fog.current.density=.0038+(1-weather.sun)*.035;world.sky.material.uniforms.haze.value=1-weather.sun
+   const f=a.state.fieldwork
+   world.jumpers.forEach((lead,i)=>lead.visible=f?.solar==='repaired'||!!((f?.plugs||0)&(1<<i)))
+   for(const name of ['green','water'] as const){
+    const lamp=world.rooms[name].group.getObjectByName('processLight') as T.Mesh<T.BufferGeometry,T.MeshBasicMaterial>
+    lamp.material.color.setHex(name==='water'?(f?.pump===4?0x7dffc2:0xff9e57):((f?.dwell||0)>=4?0x7dffc2:0xffa464))
+    if(name==='green')for(const light of world.rooms.green.group.children)if(light instanceof T.PointLight)light.intensity=f&&a.state.sol===3?15+f.lamp*.4:34
+   }
+   world.dust.material.opacity=.12+(1-weather.sun)*.82;lastState.current=a.state
   }
+  const fault=a.state.fieldwork?.solar
+  for(const lamp of world.lamps)lamp.material.color.setHex(fault==='repaired'?0x88ffbc:fault==='isolated'?0xffba55:Math.sin(st.time*6)>.1?0xff562d:0x743126)
+  if(!exterior){const room=world.rooms[p.zone as 'hab'|'water'|'green'];for(const door of room.group.children){if(door.name==='airlockLeaf')door.position.x=T.MathUtils.damp(door.position.x,a.phase==='cycle'?door.userData.side*.97:0,5,dt)}}
   if(title||a.phase==='play'){st.time+=delta;world.models.animate(st.time);world.dust.position.x=Math.sin(st.time*.17)*3;world.dust.position.z=Math.cos(st.time*.14)}
   if(title){
    const drift=matchMedia('(prefers-reduced-motion: reduce)').matches?0:Math.sin(st.time*.055)
@@ -135,17 +157,28 @@ function Scene({input}:{input:React.RefObject<WorldInput>}){
    const extra=exterior&&a.state.solar?Array.from({length:a.state.solar},(_,i)=>({x:-15.21-3.46*Math.floor(i/3),z:5.86+(i%3)*2.34,hx:1.6,hz:.93})):[]
    const blocked=room?(x:number,z:number)=>obstructed(x,z,room.bounds,room.blockers,[]):(x:number,z:number)=>obstructed(x,z,outsideBounds,extra.length?outerBoxes.concat(extra):outerBoxes,world.circles)
    const moved=walk(p,side,forward,delta*(sprint?5.1:2.65),blocked);st.step+=moved*2.8;st.bob+=(Number(moved>.0001)-st.bob)*.15
+   const stations=room?room.stations:outerStations,goal=stations.find(t=>t.id===a.target)
+   if(goal){
+    const dist=Math.hypot(goal.x-p.x,goal.z-p.z),y=exterior?terrainHeight(goal.x,goal.z):0
+    world.marker.visible=true;world.marker.position.set(goal.x,y+1.96+.055*Math.sin(st.time*2.5),goal.z)
+    world.marker.scale.setScalar(Math.min(1.7,.35+dist*.043))
+    world.halo.visible=dist<4;world.halo.position.set(goal.x,y+.032,goal.z)
+   }
    st.ui+=dt
-   if(st.ui>.12){const stations=room?room.stations:outerStations
-    const goal=stations.find(t=>t.id===a.target)
+   if(st.ui>.12){
     const bearing=goal?Math.atan2(-(goal.x-p.x),-(goal.z-p.z))-p.yaw:0
     a.onField({near:nearestStation(p,stations),distance:goal?Math.hypot(goal.x-p.x,goal.z-p.z):-1,bearing,zone:p.zone,sprint},Math.min(st.ui,.4));st.ui=0
    }
   }
+  if(a.phase==='terminal'&&p.zone==='outside'&&(a.station==='solarProbe'||a.station==='solar')){
+   const test=a.station==='solarProbe',z=test?3.9:7.35
+   camera.position.set(-4.46,1.71,z-1.62)
+   camera.lookAt(-5.55-(size.width/size.height>1.15?.78:0),1.26,z-.03);return
+  }
   const floor=p.zone==='outside'?terrainHeight(p.x,p.z):0
   camera.position.set(p.x,floor+1.62+Math.sin(st.step)*.027*st.bob,p.z);camera.rotation.order='YXZ';camera.rotation.set(p.pitch,p.yaw,0)
  })
- return <><PerspectiveCamera makeDefault fov={65} near={.045} far={600}/><primitive object={world.exterior}/>{Object.values(world.rooms).map(r=><primitive object={r.group} key={r.group.uuid}/>)}</>
+ return <><PerspectiveCamera makeDefault fov={65} near={.045} far={600}/><primitive object={world.marker}/><primitive object={world.halo}/><primitive object={world.exterior}/>{Object.values(world.rooms).map(r=><primitive object={r.group} key={r.group.uuid}/>)}</>
 }
 const roomBackground=new T.Color(0x182026)
 class RenderError extends React.Component<{children:React.ReactNode},{failed:boolean}>{

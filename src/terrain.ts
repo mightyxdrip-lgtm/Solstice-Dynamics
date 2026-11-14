@@ -78,7 +78,7 @@ function repeatTexture(data: Uint8Array, size: number, isColor: boolean) {
 
 function regolith() {
   const size = 384, pixels = size * size
-  const height = new Float32Array(pixels)
+  const height = new Float32Array(pixels), rough = new Uint8Array(pixels * 4)
   const color = new Uint8Array(pixels * 4), normal = new Uint8Array(pixels * 4)
   const random = seedStream(475841)
   for (let z = 0; z < size; z++) {
@@ -109,11 +109,13 @@ function regolith() {
       const dx = (height[z * size + (x + 1) % size] - height[z * size + (x + size - 1) % size]) * 1.75
       const dz = (height[((z + 1) % size) * size + x] - height[((z + size - 1) % size) * size + x]) * 1.75
       const n = 1 / Math.hypot(dx, dz, 1), albedo = Math.min(253, 207 + 65 * (h - .35))
+      const gritGloss = Math.min(253, Math.max(150, 213 + 60*h - 95*Math.abs(dx)))
+      rough.set([gritGloss,gritGloss,gritGloss,255],i)
       color.set([albedo, albedo, albedo, 255], i)
       normal.set([127.5 * (1 - dx * n), 127.5 * (1 - dz * n), 127.5 * (1 + n), 255], i)
     }
   }
-  return { map: repeatTexture(color, size, true), normalMap: repeatTexture(normal, size, false) }
+  return { roughnessMap: repeatTexture(rough,size,false), map: repeatTexture(color, size, true), normalMap: repeatTexture(normal, size, false) }
 }
 
 function buildBasin() {
@@ -138,6 +140,13 @@ function buildBasin() {
     base.lerp(rock, ramp(2.4, 14, y) * (.45 + .32 * beds))
     base.lerp(pale, ramp(4, 9, y) * ramp(.48, .97, beds) * .55)
     base.multiplyScalar(.91 + .18 * stone)
+    // Soft pooled shadow under foundations supplements the moving-direction shadows.
+    let contact=0
+    for(const [cx,cz,rx,rz] of [[-8,-3,4.3,4.1],[10,-9,4.2,3.0],[6,4,4.5,4.5],[0,-12,3.1,3.5]]){
+      const d=((x-cx)/rx)**2+((z-cz)/rz)**2
+      contact=Math.max(contact,.45*(1-ramp(.62,1.48,d)))
+    }
+    base.multiplyScalar(1-contact)
     base.toArray(colors, i * 3)
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
@@ -195,6 +204,23 @@ function rockField() {
   return group
 }
 
+function exposedStrata(){
+  const random=seedStream(9037),mesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(.85,1,.42,7,1),new THREE.MeshStandardMaterial({roughness:.92}),108)
+  const stone=new THREE.Object3D(),color=new THREE.Color();let i=0
+  for(const [cx,cz] of [[-26,-24],[27,10],[-36,16],[16,-39]]){
+    for(let ledge=0;ledge<7;ledge++){
+      const x=cx+ledge*1.12,z=cz+Math.sin(ledge*.6)*1.5,y=terrainHeight(x,z)
+      const levels=ledge%3===0?3:4
+      for(let layer=0;layer<levels;layer++){
+        const w=1.83-.18*layer+random()*.34
+        stone.position.set(x+.12*layer,y+.18+layer*.27,z);stone.rotation.set(.05,.64+.16*random(),-.064);stone.scale.set(w,1.08,w*.72);stone.updateMatrix();mesh.setMatrixAt(i,stone.matrix)
+        color.setHex(layer%2?0xa77453:0x80543f);mesh.setColorAt(i++,color)
+      }
+      boulderColliders.push({x,z,radius:1.18})
+    }
+  }
+  mesh.count=i;mesh.receiveShadow=true;mesh.castShadow=true;return mesh
+}
 function roverTracks() {
   const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(9, 0, 39), new THREE.Vector3(5.3, 0, 23), new THREE.Vector3(-.6, 0, 13),
@@ -237,6 +263,6 @@ function roverTracks() {
 export function createTerrain(): THREE.Group {
   const terrain = new THREE.Group()
   terrain.name = 'Martian surface'
-  terrain.add(buildBasin(), rockField(), roverTracks())
+  terrain.add(buildBasin(), rockField(), exposedStrata(), roverTracks())
   return terrain
 }

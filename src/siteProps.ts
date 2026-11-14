@@ -15,6 +15,27 @@ export function surfaceProps(){
   const texture=new T.CanvasTexture(c);texture.colorSpace=T.SRGBColorSpace
   return new T.MeshStandardMaterial({map:texture,emissiveMap:texture,emissive:display?0x6c7976:0x070707,roughness:.56})
  }
+ const j=-5.55,k=3.9
+ box(j,.47,k,.28,.94,.26,dark);box(j,1.20,k,.96,.70,.47,shell)
+ box(j,1.54,k,.99,.095,.50,orange)
+ for(const side of [-1,1]){
+   const plate=box(j,1.28,k+side*.244,.84,.36,.02,text('J–2','STRING RELAYS',true))
+   if(side<0)plate.rotation.y=Math.PI
+   for(let i=0;i<3;i++){
+     const lamp=box(j-.26+i*.26,1.02,k+side*.253,.105,.07,.026,new T.MeshBasicMaterial({color:0x83f2af}))
+     if(i===1)lamp.name='relayLight'
+   }
+ }
+ for(let channel=0;channel<2;channel++){
+   const x=j-.15+channel*.30
+   for(const off of [-.06,.10]){
+      const collar=new T.Mesh(new T.CylinderGeometry(.044,.045,.038,channel?3:14),dark);collar.rotation.x=Math.PI/2;collar.position.set(x+off,1.13,k-.26);group.add(collar)
+    }
+   const path=new T.CatmullRomCurve3([new T.Vector3(x-.06,1.13,k-.25),new T.Vector3(x-.06,.93,k-.36),new T.Vector3(x+.095,.97,k-.38),new T.Vector3(x+.10,1.14,k-.25)])
+   const jumper=new T.Mesh(new T.TubeGeometry(path,12,.024,6,false),channel?orange:dark);jumper.name='jumper'+channel;group.add(jumper)
+ }
+ const conduit=new T.CatmullRomCurve3([new T.Vector3(j,.35,k),new T.Vector3(-5.84,.07,4.15),new T.Vector3(-6.28,.052,4.51),new T.Vector3(-7.02,.055,4.77),new T.Vector3(-8.22,.24,5.86)])
+ group.add(new T.Mesh(new T.TubeGeometry(conduit,24,.048,7,false),dark))
  const x=-5.55,z=7.35
  box(x,.07,z,.86,.14,.78,dark);box(x,.65,z,.27,1.25,.29,shell)
  box(x,1.36,z,1.04,.70,.25,orange)

@@ -1,3 +1,4 @@
+import {nextField,status as fieldStatus,type Fieldwork} from './tasks.ts'
 export type Resource = 'oxygen'|'water'|'food'|'power'|'crew'
 export type Reserves = Record<Resource,number>
 export const capacities: Reserves = {oxygen:20, water:100, food:40, power:100, crew:100}
@@ -6,6 +7,7 @@ export const resources = Object.keys(capacities) as Resource[]
 export type Mode = 'balanced'|'life'|'crops'
 export type Management = {priority:Mode, air:'normal'|'eco', irrigation:'standard'|'low'|'high'}
 export type State = {
+ fieldwork?:Fieldwork,
  version:1, sol:number, done:number, reserves:Reserves, parts:number, actions:number,
  condition:number, solar:number, shield:number, recycled:number, choice:number|null,
  investigated:boolean, settings:Management, status:'active'|'success'|'failure', reason:string,
@@ -73,20 +75,22 @@ export function calculate(s:State){
  const {priority,air,irrigation}=s.settings
  const condition=limit(s.condition+(f.condition||0))
  const efficiency=.55+.45*condition/100
- const solar=round((34+8*s.solar)*e.sun*efficiency)
+ const field=s.fieldwork
+ const solar=round((34+8*s.solar)*e.sun*efficiency*(field?.solar==='fault'?.50:field?.solar==='isolated'?.80:1))
  const airLoad=(air==='eco'?6:10)+(priority==='life'?3:0)
  const waterLoad=priority==='life'?9:7
- const cropLoad=(priority==='crops'?14:priority==='life'?4:8)*(irrigation==='low'?.65:irrigation==='high'?1.2:1)
+ const fieldCrops=field&&s.sol===3
+ const cropLoad=fieldCrops?field.lamp*.14:(priority==='crops'?14:priority==='life'?4:8)*(irrigation==='low'?.65:irrigation==='high'?1.2:1)
  const demand=round(8+airLoad+waterLoad+cropLoad)
  const available=Math.max(0,s.reserves.power+solar+(f.power||0))
  const powered=Math.min(1,available/demand)
  const flushBoost=s.sol===2&&s.choice===1?.15:0
  const recovered=round(Math.min(12,12*limit(s.recycled+(f.recycled||0)+flushBoost,0,.95)*efficiency*powered*(waterLoad/7)))
- const irrigationWater=irrigation==='low'?2:irrigation==='high'?7:4
+ const irrigationWater=fieldCrops?field.irrigation:irrigation==='low'?2:irrigation==='high'?7:4
  const wet=Math.min(1,Math.max(0,s.reserves.water+(f.water||0)+recovered-12)/irrigationWater)
  const harvest=round((cropLoad/8)*3.2*efficiency*powered*wet+(f.harvest||0)*powered*wet)
  const oxygenMade=round(airLoad*.33*efficiency*powered)
- const radiationLoss=Math.max(0,e.risk-s.shield-(f.protection||0))*6
+ const radiationLoss=Math.max(0,e.risk-s.shield-(f.protection||0)-(field?.shelter&&field.crew===15?2:0))*6
  const result:Reserves={
  oxygen:s.reserves.oxygen+(f.oxygen||0)+oxygenMade-3.4,
  water:s.reserves.water+(f.water||0)+recovered-12-irrigationWater*wet,
@@ -99,6 +103,7 @@ export function calculate(s:State){
 }
 export function advance(s:State):State{
  if(s.status!=='active'||s.choice===null)return s
+ if(s.fieldwork&&!fieldStatus(s).complete)return s
  const opt=current(s).options[s.choice]
  if(s.parts+(opt.effect.parts||0)<0)return s
  const p=calculate(s),next=structuredClone(s)
@@ -113,6 +118,7 @@ export function advance(s:State):State{
  }else if(s.sol===7){next.status='success';next.reason='All seven shifts are complete. The crew is safe and every essential reserve is above zero.'}
  else {
  next.sol++;next.actions=2;next.choice=null;next.investigated=false
+ if(next.fieldwork)next.fieldwork=nextField(next.fieldwork,next.sol)
  if(next.sol===2)next.recycled=round(next.recycled-.15)
  }
  return next
@@ -120,6 +126,8 @@ export function advance(s:State):State{
 export function validSave(v:unknown):v is State{
  if(!v||typeof v!=='object')return false
  const s=v as State
+ const f=s.fieldwork
+ if(f&&(f.version!==1||f.sol!==s.sol||!['fault','repaired','isolated'].includes(f.solar)||typeof f.shelter!=='boolean'||![[f.step,0,[5,4,3,4,3,3,2][s.sol-1]],[f.samples,0,7],[f.plugs,0,3],[f.pump,0,6],[f.lamp,25,100],[f.irrigation,1,7],[f.dwell,0,4],[f.crew,0,15]].every(([v,min,max])=>Number.isInteger(v)&&v>=min&&v<=max)))return false
  const reservesOk=(r:Reserves)=>r&&resources.every(k=>Number.isFinite(r[k])&&r[k]>=0&&r[k]<=capacities[k])
  return s.version===1&&Number.isInteger(s.sol)&&s.sol>=1&&s.sol<=7&&Number.isInteger(s.done)&&s.done>=0&&s.done<=7&&
  ['active','success','failure'].includes(s.status)&&(s.status==='active'?s.sol===s.done+1:s.sol===s.done)&&reservesOk(s.reserves)&&
