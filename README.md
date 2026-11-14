@@ -1,6 +1,6 @@
 # MARS//CONTROL
 
-Team TerraVector’s playable entry project for **Build a Junior Astronaut Mission Trainer**, NASA Space Apps Challenge 2026. Command a four-person Mars outpost for seven sols. The colony illustration, interface and simulation were created for this project.
+Team TerraVector’s playable entry project for **Build a Junior Astronaut Mission Trainer**, NASA Space Apps Challenge 2026. Command a four-person Mars outpost for seven sols. Explore the outpost on foot, operate its equipment and return the crew safely through seven sols.
 
 ## Play the included build
 
@@ -16,15 +16,23 @@ Open **http://127.0.0.1:4173**. The included production build runs without a pac
 
 ## First shift
 
-1. Open **Objectives** to check the safety limits. All four consumable reserves must finish each shift above zero. Crew condition must stay at or above 60%, and equipment condition at or above 30%.
-2. Click a structure in the surface view. For a useful first investment, inspect the solar array and extend it before the dust storm. Permanent orders spend spare parts, battery energy and one of two available crew actions.
-3. Open **Review options** and compare the effects of the two responses. Projected end-of-sol reserves include the selected response. You may change allocations and the response before advancing. Engineering orders take effect immediately.
-4. Choose **Advance sol** to commit. Inspect the mission log or telemetry history to see what changed. AURA answers questions about the current state.
-5. After seven sols, read the debrief. Use **Console settings → Start a fresh game** to replay. Progress saves in this browser’s local storage at this origin. Private browsing and clearing site data can remove saves.
+Click **Begin mission** on the rendered title screen. You wake up inside the habitat. Walk with WASD, look with the mouse, hold Shift to sprint and press E near the equipment you are facing. Escape pauses the mission and releases mouse capture. Arrow keys or click-and-drag also turn the view. Touch devices have movement buttons, drag-look and a tap-to-interact prompt.
 
-### Demonstration route
+1. Inspect life support, then walk to the EVA rack and equip your suit.
+2. Follow the objective bearing to the airlock at the far end of the corridor. Cycle it and walk to the solar array.
+3. Diagnose the array. Set and apply its power priority. An optional array extension immediately spends 3 kWh and two spares, adds a physical rack and increases clear-sky capacity by 8 kWh per sol.
+4. Return through the habitat airlock. At the mission console, review the shift, respond to the advisory and advance the sol.
+5. Each later sol assigns a field inspection. Enter the water plant or greenhouse through its pressure door, or work outside at the array or shelter. Return to the mission console for handover.
 
-Extend the array on Sol 1. Choose the first response each sol. Starting on Sol 3, set irrigation to **Low**. Keep the remaining spare for the habitat seal. During the debrief, toggle water and energy in the history chart to compare their trajectories. For a contrasting run, prioritize crops, set irrigation to high, skip upgrades and take the second response each sol.
+Open the **History**, **Log**, **Manual** and **AURA** tabs at the habitat mission console. The pause menu provides graphics quality and a confirmed restart. Fresh colonies can use a tested strategy of extending the array on Sol 1, taking the first advisory response each sol and reducing irrigation starting on Sol 3. Keep one spare for the worn seal.
+
+## Surface operations
+
+Three.js, React Three Fiber and Drei render the exterior and three walkable interiors using WebGL 2. The camera stands at 1.62 m, with a 0.29 m collision radius. First-person movement uses substeps and sliding collisions against the structures and interior furnishings. Procedural terrain supplies the ground heights. The pressure cycle transfers the player between exterior and interior spaces. Graphics quality adjusts rendering resolution and shadows.
+
+EVA oxygen and suit battery drain with elapsed play time outdoors. Sprinting increases both rates. Pressurized rooms refill the suit. An emergency return costs 6 kWh and 9 crew points. Opening a terminal or pausing suspends EVA consumption. The time compression and automatic return are training mechanics. Colony stores and weather advance one sol at a time. All four essential stores must stay above zero, crew condition at or above 60%, and equipment condition at or above 30%.
+
+The game autosaves location, equipment, objectives, suit reserves and colony state on this browser. Existing colony saves resume at the habitat with new spatial objectives. Airlocks, furniture, equipment enclosures, panel arrays, terrain, sky, lighting and dust are generated locally. No external model downloads are required.
 
 ## Build and test
 
@@ -37,7 +45,7 @@ npm run build
 npm start
 ```
 
-For a development server, run `npm run dev` and open Vite’s printed address. The production server is the entry point for testing the optional Gemini integration. The core tests cover budgets, energy, water, oxygen, crop output, radiation, maintenance, emergency choices, serialization, replay determinism and both mission outcomes.
+For a development server, run `npm run dev` and open Vite’s printed address. The production server is the entry point for testing the optional Gemini integration. Field tests cover camera-relative walking, collisions, terrain and proximity interactions. The core tests cover budgets, energy, water, oxygen, crop output, radiation, maintenance, emergency choices, serialization, replay determinism and both mission outcomes.
 
 ## Deployment
 
@@ -64,7 +72,7 @@ The UI labels its predetermined advice **Offline guidance** when the server has 
 | Radiation | Six crew points per hazard level above available permanent and temporary protection |
 | Maintenance | Five equipment points per sol. Repair restores up to 22 points. |
 
-The model tracks stored consumables. The oxygen percentage is tank fill, independent of atmospheric oxygen concentration. Rations represent a crew-day fraction of stored food; four rations feed the four-person crew for one sol. A simplified air plant draws external feedstock, and mature crops are present at landing. The low/standard/high irrigation settings schedule the corresponding lamp loads together. Daily production is aggregated, so the model omits night-time power curves, actual plant maturation, detailed pressure chemistry and radiation dose. Temperature and wind describe scripted conditions; solar exposure enters the power equation directly. Equipment condition represents shared infrastructure. Emergency power savings are accounted for as signed changes to the energy budget. “Pause” locks orders and the next turn. Playback speed changes the duration of turn resolution.
+The model tracks stored consumables. The oxygen percentage is tank fill, independent of atmospheric oxygen concentration. Rations represent a crew-day fraction of stored food; four rations feed the four-person crew for one sol. A simplified air plant draws external feedstock, and mature crops are present at landing. The low/standard/high irrigation settings schedule the corresponding lamp loads together. Daily production is aggregated, so the model omits night-time power curves, actual plant maturation, detailed pressure chemistry and radiation dose. Temperature and wind describe scripted conditions; solar exposure enters the power equation directly. Equipment condition represents shared infrastructure. Emergency power savings are accounted for as signed changes to the energy budget. The pause menu suspends field movement and EVA consumption.
 
 The filter fault on Sol 2 reduces the recovery coefficient by 0.15. Replacement restores the coefficient permanently. Flushing restores it for one shift.
 
@@ -79,5 +87,5 @@ The first forecast uses the current settings and no emergency adjustment until a
 - Shelter planning and exposure time. [NASA radiation protection on Mars](https://www.nasa.gov/science-research/heliophysics/real-martians-how-to-protect-astronauts-from-space-radiation-on-mars/)
 - Project context. [NASA Space Apps challenge](https://www.spaceappschallenge.org/2026/challenges/junior-astronaut-mission-trainer/)
 
-The engineering values, crew, outpost, weather and scenarios are fictional. NASA’s educational references inform the concepts. The trainer has no NASA operational certification. Colony artwork is an original AI-generated illustration. The supplied reference screenshots are excluded from the distributed game. Third-party client library notices are included in `NOTICE.txt`.
+The engineering values, crew, outpost, weather and scenarios are fictional. NASA’s educational references inform the concepts. The trainer has no NASA operational certification. Colony models, material textures and terrain are original procedural assets. The supplied reference screenshots are excluded from the distributed game. Third-party client library notices are included in `NOTICE.txt`.
 
