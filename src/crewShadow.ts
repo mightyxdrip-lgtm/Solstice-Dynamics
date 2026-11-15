@@ -20,15 +20,15 @@ export function createCrewShadow(){
   return {side,leg,arm}
  })
  body.visible=false;body.name='EVA suit shadow caster'
- const canvas=document.createElement('canvas');canvas.width=canvas.height=256
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=512
  const ctx=canvas.getContext('2d')!,texture=new T.CanvasTexture(canvas)
  const span=6.8,geo=new T.PlaneGeometry(span,span,12,12);geo.rotateX(-Math.PI/2)
  const mesh=new T.Mesh(geo,new T.MeshBasicMaterial({map:texture,transparent:true,opacity:.51,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2}))
  mesh.name='Astronaut ground shadow';mesh.renderOrder=2;mesh.visible=false
  let last='',lastX=Infinity,lastZ=Infinity,lastZone=''
  function update(p:Pose,step:number,bob:number,sun:number){
-  const outside=p.zone==='outside',stride=Math.round(Math.sin(step)*bob*12)/12
-  const yaw=Math.round(p.yaw*65)/65
+  const outside=p.zone==='outside',stride=Math.round(Math.sin(step)*bob*32)/32
+  const yaw=Math.round(p.yaw*120)/120
   const dirX=outside?41/29:.42,dirZ=outside?27/29:-.65
   mesh.position.set(p.x+dirX*.90,0,p.z+dirZ*.90);mesh.material.opacity=outside?.33+sun*.23:.37
   if(p.x!==lastX||p.z!==lastZ||p.zone!==lastZone){
@@ -38,9 +38,9 @@ export function createCrewShadow(){
   }
   const key=[p.zone,yaw,stride].join('/')
   if(last===key)return;last=key
-  const k=256/span
-  function project(x:number,h:number,z:number){return [128+(Math.cos(yaw)*x+Math.sin(yaw)*z+dirX*(h-.90))*k,128+(-Math.sin(yaw)*x+Math.cos(yaw)*z+dirZ*(h-.90))*k]}
-  ctx.clearRect(0,0,256,256);ctx.fillStyle=ctx.strokeStyle='#191619';ctx.lineCap='round';ctx.lineJoin='round'
+  const k=512/span
+  function project(x:number,h:number,z:number){return [256+(Math.cos(yaw)*x+Math.sin(yaw)*z+dirX*(h-.90))*k,256+(-Math.sin(yaw)*x+Math.cos(yaw)*z+dirZ*(h-.90))*k]}
+  ctx.clearRect(0,0,512,512);ctx.fillStyle=ctx.strokeStyle='#191619';ctx.lineCap='round';ctx.lineJoin='round'
   function capsule(a:number[],b:number[],radius:number){const start=project(a[0],a[1],a[2]),end=project(b[0],b[1],b[2]);ctx.lineWidth=radius*2*k;ctx.beginPath();ctx.moveTo(start[0],start[1]);ctx.lineTo(end[0],end[1]);ctx.stroke()}
   for(const side of [-1,1]){
    const swing=side*stride

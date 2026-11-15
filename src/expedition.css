@@ -1,0 +1,40 @@
+.game .navigation.task-bearing{position:absolute;left:50%;right:auto;top:12px;transform:translateX(-50%);width:max-content;max-width:94vw;display:flex;align-items:center;gap:8px;text-align:center;border-radius:7px;padding:6px 12px;background:#15201fed;z-index:3;font:600 13px/1.2 "Segoe UI",sans-serif;color:#fff8e9}
+.task-bearing>span{display:inline-block;font-size:22px;line-height:1}.task-bearing b{white-space:nowrap}
+.game .compassline{display:none}
+.rover-map{position:absolute;z-index:3;right:2.5vw;bottom:65px;width:clamp(145px,17vw,208px);border:1px solid #87a895;border-radius:9px;overflow:hidden;background:#182623;box-shadow:0 4px 15px #0005}
+.rover-map header{display:flex;align-items:center;gap:6px;color:#f6dbb0;font-weight:650;padding:7px 9px}
+.rover-map>svg{width:100%;height:clamp(130px,19vh,200px);display:block;background:#303833}
+.rover-map small{position:absolute;left:6px;top:35px;color:#e1e8d9;display:flex;align-items:center}
+.driving .crosshair,.driving .vitals,.driving .mission-help,.driving .radio-note{display:none}
+.task-help-marker{position:absolute;z-index:4;width:52px;height:52px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 0 2px #fff0bf) drop-shadow(0 3px 5px #000b)}
+.task-help-marker[hidden]{display:none}
+.task-help-symbol{display:block;animation:task-help-pulse 1.6s ease-in-out infinite}
+.task-help-direction{position:absolute;inset:-12px;display:none;color:#ffe093;transform:rotate(var(--direction))}
+.at-edge .task-help-direction{display:block}
+.task-help-direction svg{position:absolute;left:50%;top:-7px;transform:translateX(-50%)}
+@keyframes task-help-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.task-help-symbol{animation:none}}
+.driving .motion-hint{background:#14201fe0;padding:5px 8px;border-radius:4px}
+.storm-card{width:min(390px,90vw);padding:24px;background:#242421;color:#fff5e3;border:2px solid #d99e64;border-radius:12px;text-align:center}
+.storm-card>svg{color:#fac17b}.storm-card h2{margin:8px 0;font-size:26px}.storm-card p{margin:12px 0;line-height:1.45;font-size:16px}
+.storm-choices button svg{flex:none}.storm-choices button{padding:8px;cursor:pointer}.storm-choices button:focus-visible,.film-skip:focus-visible{outline:3px solid #ffcc86;outline-offset:4px}
+.game .film-skip{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:4;display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #e6d6c08a;border-radius:5px;background:#151a1dcc;color:#fff2de;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.storm-result>svg{color:#f7ba79}.storm-result p{max-width:34ch}
+.sample-work{position:absolute;inset:0;pointer-events:none;z-index:4;outline:none;--fill:0deg;color:#eff7ed;font-family:inherit}
+.sample-cue,.sample-keys,.core-delivered{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;color:#eff7ed;background:#162626ef;border:1px solid #608a87;box-shadow:0 3px 18px #1115;border-radius:8px}
+.sample-cue{top:max(57px,9vh);padding:11px 15px;white-space:nowrap}.sample-cue>svg{color:#71e4f3}.sample-cue h2{margin:0;font:600 clamp(16px,2.3vw,23px)/1.15 "Segoe UI",sans-serif}
+.sample-cue>span{display:flex;gap:3px}.sample-cue i{width:5px;height:5px;background:#607879;border-radius:50%}.sample-cue i.lit{background:#a7eff5}
+.sample-work button{pointer-events:auto;color:#f1fcf7;touch-action:none;user-select:none;-webkit-user-select:none;font-family:inherit;cursor:pointer}
+.sample-work .sample-pin{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;visibility:hidden;display:grid;place-items:center;padding:0;border:2px solid #c9e1d9;border-radius:50%;background:#1b2a2be8;box-shadow:0 2px 8px #0007}
+.sample-work .sample-pin::before{content:"";position:absolute;height:10px;width:2px;bottom:100%;left:calc(50% - 1px);background:#ecf9e9}
+.sample-work .sample-pin.selected{border-color:#ffe49d;box-shadow:0 0 0 3px #e6b76e77}.sample-work .sample-pin.miss{background:#713f29;font-size:25px}
+.sample-work .sample-action{width:54px;height:54px;border-color:#98eaf3;background:radial-gradient(circle,#1c3939 58%,transparent 60%),conic-gradient(#8de7ed var(--fill),#476364 0)}
+.sample-work button:focus-visible{outline:3px solid #ffe19a;outline-offset:4px}
+.sample-keys{bottom:max(16px,env(safe-area-inset-bottom));padding:4px;gap:4px}.sample-keys button,.sample-keys>span{display:flex;gap:8px;align-items:center;justify-content:center;min-width:44px;min-height:38px;padding:4px 8px;border:0;border-radius:4px;background:transparent}.sample-keys button:hover{background:#38504c}.sample-keys svg{width:18px}.sample-keys kbd{border:1px solid #8faba2;border-radius:4px;padding:2px 5px;font-weight:700}
+.core-delivered{bottom:74px;z-index:4;padding:9px 13px;pointer-events:none}.core-delivered svg{color:#9ce6bd}
+.using-pad :is(button,a,select,input,summary):focus{outline:3px solid #ffd489;outline-offset:3px}.using-pad .touch-pad{display:none}
+.pad-tool-hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;color:#f8efdf;background:#152526ed;border-radius:5px;padding:6px 10px;font:600 14px/1.2 "Segoe UI",sans-serif;pointer-events:none}
+@media(max-height:500px){.sample-cue{top:45px;padding:6px 10px}.sample-keys{bottom:6px}}
+.storm-choices{display:flex;gap:10px}.storm-choices button{display:grid;justify-items:center;gap:6px;align-content:center;flex:1;font-family:inherit;font-size:16px;font-weight:650;border:1px solid #90ad9e;background:#29413c;color:white;min-height:76px;border-radius:6px}
+@media(max-width:650px){.game .navigation.task-bearing{top:49px;font-size:12px;padding:4px 8px}.game .visual-objective{top:88px}.game .mission-help{top:162px}.rover-map{width:127px;bottom:12px;right:8px}.rover-map>svg{height:125px}.driving .touch-pad{left:12px;right:auto}}
+@media(max-height:500px) and (max-width:900px){.rover-map{width:118px;bottom:5px}.rover-map>svg{height:100px}.driving .touch-pad{left:12px;right:auto}}

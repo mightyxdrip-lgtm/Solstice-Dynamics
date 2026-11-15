@@ -9,7 +9,7 @@ const mat = (color: number, roughness = .67, metalness = .23) =>
   new T.MeshStandardMaterial({ color, roughness, metalness })
 
 /** Bake small fittings into one draw call per finish. Positions are local to the facility. */
-class Assembly {
+export class Assembly {
   bins = new Map<T.Material, T.BufferGeometry[]>()
   add(geometry: T.BufferGeometry, material: T.Material, at: Point, rot: Point = [0,0,0], scale: Point = [1,1,1]) {
     const q = new T.Quaternion().setFromEuler(new T.Euler(...rot))
@@ -66,7 +66,8 @@ function canvasTexture(w: number, h: number, paint: (g: CanvasRenderingContext2D
 }
 
 function hullSkin() {
-  const skin=canvasTexture(1024,256,g=>{
+  const skin=canvasTexture(2048,512,g=>{
+    g.scale(2,2)
     g.fillStyle='#d7cbb9';g.fillRect(0,0,1024,256)
     // Sand abrasion, fastener rows and removable exterior insulation panels.
     let seed=84299
@@ -101,7 +102,8 @@ function plate(title:string,sub:string, light=false){
 }
 
 function solarSkin(){
-  return new T.MeshStandardMaterial({map:canvasTexture(512,288,g=>{
+  return new T.MeshStandardMaterial({map:canvasTexture(1024,576,g=>{
+    g.scale(2,2)
     g.fillStyle='#8d9da4';g.fillRect(0,0,512,288)
     g.fillStyle='#243b51';g.fillRect(4,4,504,280)
     for(let y=0;y<6;y++)for(let x=0;x<12;x++){

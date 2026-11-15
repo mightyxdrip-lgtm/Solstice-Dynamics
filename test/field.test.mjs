@@ -23,6 +23,19 @@ test('interaction requires proximity and facing the terminal',()=>{
  p.yaw=Math.PI;assert.equal(nearestStation(p,outerStations),'')
  p.z=25;assert.equal(nearestStation(p,outerStations),'')
 })
+
+test('E accepts close side approaches and the visible edge of a wide rack',()=>{
+ const rack=[{id:'suit',x:4.67,z:1.36}]
+ const side=pose(3.4,.1);side.zone='hab'
+ assert.equal(nearestStation(side,rack),'suit')
+ const approach=pose(2.7,-.8);approach.zone='hab';approach.yaw=Math.atan2(-(4.67-approach.x),-(.14-approach.z))
+ assert.equal(nearestStation(approach,rack),'suit')
+ approach.x=-5;assert.equal(nearestStation(approach,rack),'')
+})
+
+test('overlapping interaction ranges favor the equipment in view',()=>{
+ assert.equal(nearestStation(pose(),[{id:'behind',x:0,z:1.1},{id:'ahead',x:0,z:-1.5}]),'ahead')
+})
 test('terrain holds the landing pad level and shapes walkable impact basins',()=>{
  assert.equal(terrainHeight(0,0),terrainHeight(-10,8))
  assert.ok(terrainHeight(36,17)<terrainHeight(44,17)-1)

@@ -1,0 +1,15 @@
+.field-card{position:relative;min-width:min(290px,90vw);padding:42px 18px 18px;border:1px solid #73928d;border-radius:9px;background:#172524}
+.corner-close{position:absolute;top:5px;right:5px;padding:4px;border:0;background:transparent;color:#c4d7d1}
+.single-action,.go-task,.plan-pair button,.day-next{display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer}
+.single-action,.go-task,.day-next{width:100%;background:#b3e5c8;border:1px solid #d0ffe3;color:#172c24;border-radius:7px;min-height:52px;font-weight:700}
+.single-action{flex-direction:column;padding:18px;gap:9px;font-size:22px}
+.go-task{padding:12px;font-size:18px}.term-body>.go-task{margin-bottom:8px}
+.extra-instruments{color:#c5d7d1;font-size:12px;margin:12px 0 0}.extra-instruments>summary{cursor:pointer}.extra-instruments[open]>summary{margin-bottom:14px}
+.plan-panel h2{font-size:20px;margin:0 0 10px}.plan-pair{display:flex;gap:9px;margin:0 0 12px}
+.plan-pair button{flex:1;flex-direction:column;background:#243535;color:#f1f5ec;border:1px solid #738780;border-radius:7px;padding:13px 6px;min-height:95px;font-weight:650}
+.plan-pair button[aria-pressed=true]{border:2px solid #9de9b9;background:#2c4840}
+.day-next:disabled{opacity:.4}.workbench .go-task{font-size:18px}
+.phase-terminal .flight-top{visibility:hidden}
+.game .visual-caption{left:50%;top:clamp(6px,4vh,38px);transform:translateX(-50%);border:1px solid #9ec0ad;white-space:nowrap;border-radius:24px;padding:8px 18px;background:#132321ed}
+.phase-play .motion-hint{display:flex;align-items:center;gap:4px}.game .visual-caption svg{color:#ffcc92}
+@media(pointer:coarse),(max-width:580px){.phase-play .motion-hint{display:none}}

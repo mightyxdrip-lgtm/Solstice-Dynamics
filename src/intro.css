@@ -1,0 +1,37 @@
+.opening-film{position:absolute;inset:0;z-index:5;background:#0c1112}
+.opening-film>video,.opening-film>img{display:block;width:100%;height:100%;object-fit:cover}
+.opening-actions{position:absolute;inset:auto 0 0;padding:clamp(18px,4.5vmin,54px) 6vw;background:linear-gradient(transparent,#0b0e12df);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.opening-actions h1{font:900 clamp(21px,4.2vw,65px)/1 Bahnschrift,"Segoe UI",sans-serif;letter-spacing:-.055em;color:#fff5e4;margin:0;text-shadow:0 1px 8px #111}
+.opening-actions h1 span{color:#ff995f}.opening-actions .enter{justify-content:center;gap:10px;min-width:clamp(100px,13vw,180px);min-height:48px}
+.loading-orbit{display:block;border-radius:50%;width:20px;height:20px;border:3px solid #644736;border-top-color:#ffe4bc;animation:loading-turn 1.2s linear infinite}
+@keyframes loading-turn{to{transform:rotate(360deg)}}
+.opening-actions{transition:opacity .22s ease-out}
+.opening-film.is-arriving .opening-actions{opacity:0;pointer-events:none}
+
+.mission-home {
+ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end;
+ padding:clamp(28px,9vh,120px) clamp(24px,7vw,128px);
+ background:linear-gradient(90deg,#111719a8,transparent 68%),linear-gradient(0deg,#100e0de3,transparent 54%);
+}
+.mission-home:focus {outline:none}
+.home-content h1 {
+ margin:0 0 clamp(22px,4vh,44px); color:#fff5e6;
+ font:900 clamp(56px,min(9.7vw,16vh),162px)/.86 Bahnschrift,"Arial Black",Arial,sans-serif;
+ letter-spacing:-.065em; text-shadow:0 2px 15px #25150c40;
+}
+.home-content h1 span {color:#ff9759; letter-spacing:-.1em}
+.home-actions {display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px}
+.mission-home .home-play {justify-content:center; gap:12px; min-width:148px; min-height:48px}
+.home-play:disabled {opacity:.75}
+.home-replay {
+ display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px;
+ padding:0 15px; border:1px solid #e1d5bf65; border-radius:3px;
+ background:#151818b8; color:#fff3e2; font:600 14px "Segoe UI",Arial,sans-serif;
+}
+.home-replay:hover {background:#343532}
+.home-actions button:focus-visible {outline:3px solid #fff8e9; outline-offset:4px}
+@media (max-width:520px) {
+ .mission-home {padding-bottom:max(7vh,env(safe-area-inset-bottom))}
+ .home-content h1 {font-size:clamp(48px,14vw,72px)}
+ .mission-home .home-play {min-width:124px}
+}

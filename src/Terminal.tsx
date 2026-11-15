@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Activity, ArrowRight, Check, Monitor, X } from 'lucide-react'
+import { Activity, ArrowRight, Check, Monitor, X, BatteryCharging, House, Wrench, Droplets, Sun, Leaf, ShieldCheck, Footprints, Circle, Bandage, Apple, CloudFog, Shirt, Play, Rocket } from 'lucide-react'
 import {
   advance, calculate, changeSettings, current, forecast, jobBlock, jobs,
   pct, performJob, resources, selectChoice, units, type Job, type Management,
@@ -7,6 +7,8 @@ import {
 } from './engine'
 import { Advisor, History, Log, Manual, colors, labels } from './ui'
 import {Science} from './science'
+import {StationIcon} from './visualGuidance'
+import {status} from './tasks'
 import './terminal.css'
 
 export type TerminalEvent = 'life' | 'suit' | 'solar' | 'allocated' | 'review' | 'advance'
@@ -130,23 +132,58 @@ function Station({ id, s, setS, onClose, onRecord, offlineOnline, canAdvance, su
     options={irrigation} disabled={!active} onChange={value => adjust({ irrigation:value })}/>
   const supplyInfo = <Readings items={ [['Spare parts', s.parts], ['Crew actions left this sol', s.actions]] }/>
 
+  if(id==='suit')return <section className="field-card" aria-label="Suit station">
+    <button className="corner-close" aria-label="Close terminal" onClick={onClose}><X/></button>
+    <button className="single-action" aria-label={suited?'Return to field':'Equip EVA suit'} onClick={()=>{if(!suited)onRecord('suit');onClose()}}>
+     <Shirt size={68}/><b>{suited?'Go':'Suit up'}</b><ArrowRight size={26}/>
+    </button>
+  </section>
+  const job=status(s)
+  if(id==='reports'&&s.sol===7&&canAdvance&&active){
+   const storm=current(s)
+   function decide(choice:0|1){
+    const selected=selectChoice(s,choice),result=advance(selected)
+    if(result===selected)return
+    setS(result);onRecord('advance')
+   }
+   return <section className="storm-card" aria-label="Final sandstorm decision">
+    <CloudFog size={54} aria-hidden="true"/><h2>{storm.title}</h2>
+    <p>{storm.description}</p>
+    <div className="storm-choices"><button onClick={()=>decide(0)}><Rocket size={30}/>{storm.options[0].name}</button>
+     <button onClick={()=>decide(1)}><Footprints size={30}/>{storm.options[1].name}</button></div>
+   </section>
+  }
+  const choices=[
+   [[BatteryCharging,'Save power'],[House,'Warm cabin']],
+   [[Wrench,'New filter'],[Droplets,'Wash filter']],
+   [[Sun,'Light plants'],[Leaf,'Trim plants']],
+   [[ShieldCheck,'Shelter'],[Footprints,'Work outside']],
+   [[Circle,'New seal'],[Bandage,'Patch seal']],
+   [[Droplets,'Get water'],[Apple,'Get food']],
+   [[Rocket,current(s).options[0].name],[Footprints,current(s).options[1].name]]
+  ] as const
+  const options=choices[s.sol-1]||choices[0]
+  const primary=id==='reports'&&canAdvance?<div className="plan-panel">
+    <h2>Pick a plan</h2><div className="plan-pair">{event.options.map((option,i)=>{
+     const [Icon,label]=options[i];return <button key={option.name} aria-label={option.name} aria-pressed={s.choice===i}
+      disabled={s.parts+(option.effect.parts||0)<0} onClick={()=>setS(selectChoice(s,i))}><Icon size={34}/>{label}{s.choice===i&&<Check size={17}/>}</button>
+    })}</div>
+    <button className="day-next" aria-label="Advance sol" onClick={finishShift} disabled={s.choice===null}><Play size={18}/>{s.sol===7?'Finish':'Next day'}</button>
+   </div>:<button className="go-task" aria-label={'Return to field for '+job.station} onClick={onClose}><StationIcon id={suited?job.station:'suit'} size={40}/><span>Go to task</span><ArrowRight/></button>
+
   return <section className="terminal-inner" aria-label={name + ' terminal'}>
     <header className="term-head"><div><span><Monitor size={13}/>{code}</span><h2>{name}</h2></div>
       <button className="term-close" aria-label="Close terminal" onClick={onClose}><X size={19}/></button></header>
     <div className="term-body">
+      {primary}
+      <details className="extra-instruments"><summary>Details</summary>
       {id === 'life' && <>
         <ReserveTable stocks={s.reserves}/>
         <Readings items={ [['Oxygen production', format(budget.oxygenMade) + ' kg/sol'], ['Crew oxygen use', '3.4 kg/sol']] }/>
         <Selector title="Air cycle" value={s.settings.air} options={ [['normal','Normal'],['eco','Conserve']] as const }
           onChange={value => adjust({air:value})} disabled={!active}/>
-        <p>Conservation cuts the air plant’s load by 4 kWh and reduces oxygen output. Crew condition falls by two points per sol in this mode.</p>
+        <details><summary>Help</summary><p>Conservation cuts the air plant’s load by 4 kWh and reduces oxygen output. Crew condition falls by two points per sol in this mode.</p></details>
         {submit('Complete life-support inspection', () => record('life','Life-support inspection recorded.'))}
-      </>}
-      {id === 'suit' && <>
-        <Readings items={ [['Suit status', suited ? 'Equipped' : 'On rack']] }/>
-        <p>Equip the EVA suit before cycling the habitat airlock. Monitor suit oxygen and power during surface work.</p>
-        {submit(suited ? 'EVA suit equipped' : 'Equip EVA suit', () => record('suit','Suit sealed. Ready to cycle the airlock.'), suited || !inspectedLife)}
-        {!inspectedLife && <p>Complete the life-support inspection to release the EVA suit.</p>}
       </>}
       {id === 'solar' && <>
         <Readings items={ [
@@ -165,7 +202,7 @@ function Station({ id, s, setS, onClose, onRecord, offlineOnline, canAdvance, su
           ['Water reserve',format(s.reserves.water)+' L'],['Filter recovery coefficient', Math.round(budget.recycled*100)+'%'],
           ['Recovered this sol',format(budget.recovered)+' L'], ['Equipment condition',s.condition+'%'],
         ] }/>
-        <p>Recovery depends on the filter, available power and shared equipment condition. Servicing equipment uses a spare and draws from the battery immediately.</p>
+        <details><summary>Help</summary><p>Recovery depends on the filter, available power and shared equipment condition. Servicing equipment uses a spare and draws from the battery immediately.</p></details>
         {workOrder('repair')}{irrigationControl}
       </>}
       {id === 'green' && <>
@@ -176,14 +213,14 @@ function Station({ id, s, setS, onClose, onRecord, offlineOnline, canAdvance, su
         {irrigationControl}
         <Selector title="Power distribution" options={priorities} value={s.settings.priority}
           disabled={!active} onChange={value => adjust({priority:value})}/>
-        <p>Extra water and lamp power increase the harvest from the mature crop. Check the battery and water reserves before increasing production.</p>
+        <details><summary>Help</summary><p>Extra water and lamp power increase the harvest from the mature crop. Check the battery and water reserves before increasing production.</p></details>
       </>}
       {id === 'shelter' && <>
         <Readings items={ [
           ['Radiation hazard', 'Level '+event.risk], ['Permanent shielding','Level '+s.shield+' / 4'],
           ['Projected exposure penalty',budget.radiationLoss+' crew points'],
         ] }/>
-        <p>Additional shielding reduces exposure on later sols. During a particle alert, command can also schedule shelter time for the crew.</p>
+        <details><summary>Help</summary><p>Additional shielding reduces exposure on later sols. During a particle alert, command can also schedule shelter time for the crew.</p></details>
         {workOrder('shield')}
       </>}
       {id === 'reports' && <>
@@ -192,18 +229,18 @@ function Station({ id, s, setS, onClose, onRecord, offlineOnline, canAdvance, su
         )}</nav>
         {tab === 'Watch' && (active ? <>
           <span className="term-advisory">Sol {s.sol} / {event.category}</span>
-          <h3>{event.title}</h3><p>{event.description}</p>
+          <h3>{event.title}</h3><details><summary>Help</summary><p>{event.description}</p><p>{event.lesson}</p></details>
           <div className="term-choices">{event.options.map((option,i) =>
             <button key={option.name} aria-pressed={s.choice === i} disabled={s.parts+(option.effect.parts||0)<0}
               onClick={() => {setS(selectChoice(s,i));setNotice('Response entered in the shift plan.')}}>
-              <span><strong>{option.name}</strong><small>{option.detail}</small></span>{s.choice === i && <Check size={15}/>}
+              <span><strong>{option.name}</strong><small>{Object.entries(option.effect).map(([key,value])=>(value!>0?'+':'')+value+' '+({power:'kWh',water:'L',oxygen:'kg O₂',food:'food',crew:'crew',parts:'spare',recycled:'recovery',condition:'repair',protection:'shield',harvest:'food'} as Record<string,string>)[key]).join(' · ')}</small></span>{s.choice === i && <Check size={15}/>}
             </button>)}</div>
-          {s.choice !== null && <p>{event.lesson}</p>}
+
           <ReserveTable stocks={s.reserves} projection={budget.result}/>
-          {submit('Review shift results', () => record('review', 'Current shift projections reviewed.'))}
+
           {submit('Advance sol', finishShift, !canAdvance || s.choice===null)}
           {(!canAdvance || s.choice===null) && <p className="term-hint">
-            {!canAdvance ? 'Complete the current mission objective to unlock shift handover.' : 'Choose an advisory response to commit this shift.'}
+            {!canAdvance ? 'Finish the field task.' : 'Choose a plan.'}
           </p>}
         </> : <><h3>{s.status==='success'?'Seven-sol mission complete':'Mission ended'}</h3><p>{s.reason}</p><History s={s}/></>)}
         {tab === 'Supplies' && <>{supplyInfo}{workOrder('repair')}{workOrder('survey')}{s.investigated && <p>{forecast(s)}</p>}</>}
@@ -212,7 +249,8 @@ function Station({ id, s, setS, onClose, onRecord, offlineOnline, canAdvance, su
         {tab === 'Manual' && <Manual/>}
         {tab === 'AURA' && <Advisor s={s} online={offlineOnline}/>}
       </>}
+      </details>
     </div>
-    <footer className="term-foot" role="status" aria-live="polite"><Activity size={14}/>{notice || 'Connected · Sol ' + String(s.sol).padStart(2,'0')}</footer>
+    {notice&&<footer className="term-foot" role="status" aria-live="polite"><Activity size={14}/>{notice}</footer>}
   </section>
 }

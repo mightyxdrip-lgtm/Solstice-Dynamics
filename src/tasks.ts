@@ -1,9 +1,11 @@
 import {calculate, type State, type Mode} from './engine.ts'
+import {roverBay,surveyBeacon,homeBeacon,dockingRadius,crystalRock,surveyStages,type RoverAction,type Survey} from './roverRoute.ts'
 
 export type Repair='fault'|'repaired'|'isolated'
 export interface Fieldwork {
  version:1; sol:number; step:number; samples:number; plugs:number; solar:Repair
  pump:number; lamp:number; irrigation:number; dwell:number; crew:number; shelter:boolean
+ survey?:Survey
 }
 export const enrollment=(s:State):State=>s.fieldwork?s:{...s,fieldwork:{version:1,sol:s.sol,step:0,samples:0,plugs:0,solar:s.sol===1?'fault':'repaired',pump:0,lamp:25,irrigation:1,dwell:0,crew:0,shelter:false}}
 export const nextField=(f:Fieldwork,sol:number):Fieldwork=>({...f,sol,step:0,samples:0,plugs:0,dwell:0,crew:0,shelter:false})
@@ -18,11 +20,42 @@ export const missions=[
 ] as const
 export function status(s:State){const m=missions[s.sol-1],f=s.fieldwork
  const step=f?.step||0,total=m?.checks.length||0
+ // Earlier saves keep all their instrument readings. Crews already beyond the
+ // first shift can still complete the new expedition before their final handover.
+ const withSurvey=s.sol===1||(s.sol===7&&f?.survey!=='done'&&s.status==='active')
+ if(withSurvey){
+  const expedition=['Board the rover','Drive to the survey beacon','Pick the blue crystal','Drill a rock core','Stow the core','Return to home base','Give the core to the lab']
+  const checks=[...expedition,...m.checks],leg=f?.survey??'parked'
+  if(leg!=='done')return {step:surveyStages.indexOf(leg),total:checks.length,complete:false,title:'Bring back a rock core',checks,
+   station:leg==='parked'?'rover':leg==='inbound'||leg==='unload'?'roverHome':'surveyBeacon',
+   tip:leg==='parked'?'Board the rover beside the habitat.':leg==='outbound'?'Drive to the flag on your map.':expedition[surveyStages.indexOf(leg)]}
+  return {step:step+expedition.length,total:checks.length,complete:step>=total,title:m.title,checks,station:m.stations[step]||'reports',tip:m.tips[step]||'Return to mission control.'}
+ }
  return {step,total,complete:step>=total,title:m?.title||'Outpost handover',checks:m?.checks||[],station:m?.stations[step]||'reports',tip:m?.tips[step]||'Return to mission control and close the shift.'}
+}
+export function roverAction(s:State,action:RoverAction,pose:{zone:string;x:number;z:number},rock?:number):State{
+ const f=s.fieldwork
+ if(!f||s.status!=='active'||pose.zone!=='outside'||(s.sol!==1&&s.sol!==7)||f.survey==='done')return s
+ const leg=f.survey??'parked'
+ const steps:Record<Exclude<Survey,'done'>,[RoverAction,Survey,string]>={
+  parked:['board','outbound','Rover departed for the sampling site.'],
+  outbound:['arrive','chooseRock','Rover docked at the survey beacon.'],
+  chooseRock:['pick','drill','Blue crystal deposit located.'],
+  drill:['extract','stow','Rover drill extracted a rock core.'],
+  stow:['pack','inbound','Rock core secured for the return trip.'],
+  inbound:['arrive','unload','Rover docked beside the sample lab.'],
+  unload:['deliver','done','Rock core delivered to the base lab.']
+ }
+ const [expected,survey,text]=steps[leg]
+ if(action!==expected||(action==='pick'&&rock!==crystalRock))return s
+ const target=leg==='parked'||leg==='inbound'||leg==='unload'?homeBeacon:surveyBeacon
+ if(!(Math.hypot(pose.x-target.x,pose.z-target.z)<=dockingRadius))return s
+ return {...s,fieldwork:{...f,survey},log:[...s.log,{sol:s.sol,text}]}
 }
 export const safeBed=(f:Fieldwork)=>f.lamp>=55&&f.lamp<=75&&f.irrigation>=3&&f.irrigation<=5
 export function fieldAction(s:State,id:string,cmd:string,value=0):State{
  const f=s.fieldwork,m=status(s)
+ if(id==='rover'||id==='surveyBeacon'||id==='roverHome')return s
  if(!f||f.sol!==s.sol||s.status!=='active'||m.complete||m.station!==id)return s
  const n=structuredClone(s),a=n.fieldwork!
  const sample=(count:number)=>{if(!Number.isInteger(value)||value<0||value>=count)return false;a.samples|=1<<value;if(a.samples===(1<<count)-1)a.step++;return true}

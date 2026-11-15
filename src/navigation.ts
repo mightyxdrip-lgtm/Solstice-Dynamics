@@ -1,4 +1,5 @@
 export type Zone='outside'|'hab'|'green'|'water'
+import {roverBay} from './roverRoute.ts'
 export interface Pose {x:number;z:number;yaw:number;pitch:number;zone:Zone}
 export interface Box {x:number;z:number;hx:number;hz:number}
 export interface Circle {x:number;z:number;radius:number}
@@ -6,6 +7,7 @@ export interface Bounds {minX:number;maxX:number;minZ:number;maxZ:number}
 export const capsuleRadius=.29
 export const outsideBounds:Bounds={minX:-120,maxX:120,minZ:-120,maxZ:120}
 export const outerStations=[
+ roverBay,
  {id:'enterHab',x:-8,z:1.4}, {id:'enterWater',x:8.55,z:-6.65},
  {id:'enterGreen',x:6,z:8.32}, {id:'solar',x:-5.55,z:7.35},
  {id:'solarProbe',x:-5.55,z:3.9}, {id:'shelter',x:0,z:-8.8}
@@ -17,8 +19,7 @@ export const outerBoxes:Box[]=[
  {x:12.5,z:1,hx:1.3,hz:.85}
 ]
 for(const x of [-11.78,-8.22])for(const z of [5.86,8.2,10.54])outerBoxes.push({x,z,hx:1.6,hz:.93})
-export function obstructed(x:number,z:number,b:Bounds,boxes:Box[],circles:Circle[]){
- const r=capsuleRadius
+export function obstructed(x:number,z:number,b:Bounds,boxes:Box[],circles:Circle[],r=capsuleRadius){
  if(x<b.minX+r||x>b.maxX-r||z<b.minZ+r||z>b.maxZ-r)return true
  for(const a of boxes){
   const dx=Math.max(Math.abs(x-a.x)-a.hx,0),dz=Math.max(Math.abs(z-a.z)-a.hz,0)
@@ -38,14 +39,18 @@ export function walk(p:Pose,side:number,forward:number,meters:number,blocked:(x:
  }
  return Math.hypot(p.x-startX,p.z-startZ)
 }
-export const stationNames:Record<string,string>={solarProbe:'J-2 array junction',waterGauge:'Differential pressure taps',greenSensor:'Bed 03 sensor head',life:'Life-support console',suit:'EVA suit rack',reports:'Mission console',exit:'Cycle airlock',enterHab:'Habitat airlock',enterWater:'Water plant airlock',enterGreen:'Greenhouse airlock',solar:'Solar power terminal',shelter:'Shelter controls',water:'Water processor',green:'Greenhouse controls'}
+export const stationNames:Record<string,string>={rover:'Board survey rover',solarProbe:'J-2 array junction',waterGauge:'Differential pressure taps',greenSensor:'Bed 03 sensor head',life:'Life-support console',suit:'EVA suit rack',reports:'Mission console',exit:'Cycle airlock',enterHab:'Habitat airlock',enterWater:'Water plant airlock',enterGreen:'Greenhouse airlock',solar:'Solar power terminal',shelter:'Shelter controls',water:'Water processor',green:'Greenhouse controls'}
 export function nearestStation(p:Pose,stations:{id:string,x:number,z:number}[]){
- let nearest='',best=2.7
+ let nearest='',best=Infinity
  for(const s of stations){
   const dx=s.x-p.x,dz=s.z-p.z,d=Math.hypot(dx,dz)
-  if(d>best)continue
-  if(d>.8&&(-Math.sin(p.yaw)*dx-Math.cos(p.yaw)*dz)/d<.40)continue
-  best=d;nearest=s.id
+  if(d>3.2)continue
+  const facing=d>.001?(-Math.sin(p.yaw)*dx-Math.cos(p.yaw)*dz)/d:1
+  // Equipment beside the player is usable without pinpoint aiming. Farther
+  // targets must be in front; favor the one being looked at when stations overlap.
+  if(d>1.8&&facing<.40)continue
+  const score=d+(1-facing)*.65
+  if(score<best){best=score;nearest=s.id}
  }
  return nearest
 }

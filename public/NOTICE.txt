@@ -1,3 +1,8 @@
+Flight suit model for the final storm sequence
+Z2 Spacesuit by NASA / Langley Research Center / Advanced Concepts Lab
+https://science.nasa.gov/3d-resources/z2-spacesuit/
+The game optimizes the original mesh and textures for offline play and adds animation.
+
 Third-party client library notices
 
 react

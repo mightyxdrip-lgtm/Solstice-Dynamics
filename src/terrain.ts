@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import {nearRoute} from './roverRoute.ts'
 
 // Distances are metres. Keep the central grade level so tunnels, footings and
 // machinery can share a datum. The surrounding landscape uses the same height
@@ -70,14 +71,14 @@ function repeatTexture(data: Uint8Array, size: number, isColor: boolean) {
   texture.minFilter = THREE.LinearMipmapLinearFilter
   texture.magFilter = THREE.LinearFilter
   texture.generateMipmaps = true
-  texture.anisotropy = 4
+  texture.anisotropy = 8
   if (isColor) texture.colorSpace = THREE.SRGBColorSpace
   texture.needsUpdate = true
   return texture
 }
 
 function regolith() {
-  const size = 384, pixels = size * size
+  const size = 768, pixels = size * size
   const height = new Float32Array(pixels), rough = new Uint8Array(pixels * 4)
   const color = new Uint8Array(pixels * 4), normal = new Uint8Array(pixels * 4)
   const random = seedStream(475841)
@@ -86,18 +87,19 @@ function regolith() {
       const u = x / size, v = z / size
       const warp = noise(6 * u, 6 * v, 6)
       const patches = noise(15 * u, 15 * v, 15)
-      const grit = noise(76 * u, 76 * v, 76)
+      const grit = noise(116 * u, 116 * v, 116)
+      const fine = noise(293 * u, 293 * v, 293)
       const ripple = Math.sin(TAU * (v * 13 + u * 4 + .94 * warp + .19 * patches))
       const grain = random() - .5
-      height[z * size + x] = .38 * warp + .27 * patches + .20 * grit + .11 * ripple + .11 * grain
+      height[z * size + x] = .34 * warp + .25 * patches + .21 * grit + .10 * fine + .075 * ripple + .055 * grain
     }
   }
   // Pebble relief is stamped across wrapped edges so it tiles continuously.
-  for (let i = 0; i < 2100; i++) {
+  for (let i = 0; i < 6200; i++) {
     const cx = (random() * size) | 0, cz = (random() * size) | 0
-    const r = .45 + 2.35 * random() ** 3
-    for (let dz = -3; dz <= 3; dz++) {
-      for (let dx = -3; dx <= 3; dx++) {
+    const r = .7 + 3.8 * random() ** 3
+    for (let dz = -5; dz <= 5; dz++) {
+      for (let dx = -5; dx <= 5; dx++) {
         const d2 = (dx * dx + 1.4 * dz * dz) / (r * r)
         if (d2 < 1) height[((cz + dz + size) % size) * size + ((cx + dx + size) % size)] += .38 * (1 - d2)
       }
@@ -106,12 +108,13 @@ function regolith() {
   for (let z = 0; z < size; z++) {
     for (let x = 0; x < size; x++) {
       const i = (z * size + x) * 4, h = height[i / 4]
-      const dx = (height[z * size + (x + 1) % size] - height[z * size + (x + size - 1) % size]) * 1.75
-      const dz = (height[((z + 1) % size) * size + x] - height[((z + size - 1) % size) * size + x]) * 1.75
-      const n = 1 / Math.hypot(dx, dz, 1), albedo = Math.min(253, 207 + 65 * (h - .35))
+      const dx = (height[z * size + (x + 1) % size] - height[z * size + (x + size - 1) % size]) * 2.2
+      const dz = (height[((z + 1) % size) * size + x] - height[((z + size - 1) % size) * size + x]) * 2.2
+      const n = 1 / Math.hypot(dx, dz, 1), albedo = Math.min(250, 197 + 91 * (h - .35))
       const gritGloss = Math.min(253, Math.max(150, 213 + 60*h - 95*Math.abs(dx)))
       rough.set([gritGloss,gritGloss,gritGloss,255],i)
-      color.set([albedo, albedo, albedo, 255], i)
+      const mineral = noise(x / size * 55, z / size * 55, 55)
+      color.set([albedo, albedo * (.95 + mineral * .045), albedo * (.88 + mineral * .09), 255], i)
       normal.set([127.5 * (1 - dx * n), 127.5 * (1 - dz * n), 127.5 * (1 + n), 255], i)
     }
   }
@@ -119,7 +122,7 @@ function regolith() {
 }
 
 function buildBasin() {
-  const segments = 232
+  const segments = 280
   const geometry = new THREE.PlaneGeometry(480, 480, segments, segments)
   geometry.rotateX(-Math.PI / 2)
   const positions = geometry.getAttribute('position')
@@ -153,7 +156,7 @@ function buildBasin() {
   geometry.computeVertexNormals()
   geometry.computeBoundingSphere()
   const soil = new THREE.MeshStandardMaterial({
-    ...regolith(), vertexColors: true, roughness: 1, metalness: 0, normalScale: new THREE.Vector2(.58, .58)
+    ...regolith(), vertexColors: true, roughness: 1, metalness: 0, normalScale: new THREE.Vector2(.72, .72)
   })
   const ground = new THREE.Mesh(geometry, soil)
   ground.name = 'Elysium basin and layered escarpments'
@@ -168,11 +171,19 @@ export const boulderColliders: {x:number, z:number, radius:number}[] = []
 function rockField() {
   boulderColliders.length = 0
   const group = new THREE.Group(), random = seedStream(17012026)
-  const material = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .98})
+  const textureSize = 256, albedo = new Uint8Array(textureSize * textureSize * 4)
+  for (let z = 0; z < textureSize; z++) for (let x = 0; x < textureSize; x++) {
+    const broad = noise(x / 32, z / 32, 8)
+    const grain = noise(x / 3.2, z / 3.2, 80)
+    const vein = Math.abs(noise(x / 12.8, z / 12.8, 20) - .5)
+    const brightness = 160 + broad * 58 + grain * 27 + (vein < .035 ? 13 : 0)
+    albedo.set([brightness, brightness, brightness, 255], (z * textureSize + x) * 4)
+  }
+  const material = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .96, map: repeatTexture(albedo, textureSize, true)})
   const placement = new THREE.Object3D(), color = new THREE.Color()
   const dark = new THREE.Color('#684737'), light = new THREE.Color('#b0876b')
   for (let variety = 0; variety < 5; variety++) {
-    const geometry = new THREE.IcosahedronGeometry(1, 1)
+    const geometry = new THREE.IcosahedronGeometry(1, variety === 0 ? 2 : 1)
     const vertices = geometry.getAttribute('position')
     for (let i = 0; i < vertices.count; i++) {
       const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i)
@@ -189,7 +200,7 @@ function rockField() {
       const angle = random() * TAU
       const distance = 9 + 124 * random() ** 1.6
       const x = distance * Math.cos(angle), z = distance * Math.sin(angle)
-      const clear = footprints.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r) || distance < 15
+      const clear = nearRoute(x,z) || footprints.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r) || distance < 15
       const size = (variety === 0 ? .29 + random() ** 4 * 1.6 : .055 + random() ** 3 * .62) * (clear ? .10 : 1)
       placement.position.set(x, terrainHeight(x, z) + .07 * size, z)
       placement.rotation.set(random() * .28, random() * TAU, random() * .42)
@@ -198,6 +209,39 @@ function rockField() {
       placement.updateMatrix()
       mesh.setMatrixAt(i, placement.matrix)
       mesh.setColorAt(i, color.copy(dark).lerp(light, random() ** 1.5))
+    }
+    group.add(mesh)
+  }
+  return group
+}
+
+function surfaceGravel() {
+  const group = new THREE.Group(), random = seedStream(368421)
+  const material = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .97, flatShading: true})
+  const stone = new THREE.Object3D(), color = new THREE.Color()
+  const dark = new THREE.Color('#50483f'), light = new THREE.Color('#b49072')
+  for (let variety = 0; variety < 3; variety++) {
+    const geometry = new THREE.IcosahedronGeometry(1, 0), positions = geometry.getAttribute('position')
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i)
+      const erosion = .77 + .37 * noise(x * 5 + variety * 17, z * 5 + y)
+      positions.setXYZ(i, x * erosion + y * .16, y * erosion, z * erosion)
+    }
+    geometry.computeVertexNormals()
+    const mesh = new THREE.InstancedMesh(geometry, material, 600)
+    mesh.name = 'Surface gravel and wind-sorted fragments'
+    mesh.receiveShadow = true
+    for (let i = 0; i < mesh.count; i++) {
+      const angle = random() * TAU, radius = 2 + 60 * random() ** 1.7
+      const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius
+      const foundation = footprints.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r * .72)
+      const cluster = .45 + .55 * noise(x * .19 + 7, z * .19)
+      const size = (.022 + random() ** 2 * .12) * cluster * (foundation ? .16 : 1)
+      stone.position.set(x, terrainHeight(x, z) + size * .13, z)
+      stone.rotation.set(random() * .5, random() * TAU, random() * .4)
+      stone.scale.set(size * (1 + random() * .8), size * (.25 + .18 * random()), size * (.65 + random() * .45))
+      stone.updateMatrix();mesh.setMatrixAt(i, stone.matrix)
+      mesh.setColorAt(i, color.copy(dark).lerp(light, random()))
     }
     group.add(mesh)
   }
@@ -263,6 +307,6 @@ function roverTracks() {
 export function createTerrain(): THREE.Group {
   const terrain = new THREE.Group()
   terrain.name = 'Martian surface'
-  terrain.add(buildBasin(), rockField(), exposedStrata(), roverTracks())
+  terrain.add(buildBasin(), rockField(), surfaceGravel(), exposedStrata(), roverTracks())
   return terrain
 }

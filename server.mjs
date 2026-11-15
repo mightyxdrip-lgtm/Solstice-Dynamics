@@ -5,7 +5,7 @@ import path from 'node:path'
 import { validSave, calculate, current } from './src/engine.ts'
 
 const root = fileURLToPath(new URL('./dist/', import.meta.url))
-const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'application/javascript', '.jpg':'image/jpeg', '.svg':'image/svg+xml' }
+const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'application/javascript', '.jpg':'image/jpeg', '.svg':'image/svg+xml', '.mp4':'video/mp4', '.glb':'model/gltf-binary' }
 const key = process.env.GEMINI_API_KEY
 const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
 const json = (res, status, obj) => { res.writeHead(status, {'content-type':'application/json','cache-control':'no-store'}); res.end(JSON.stringify(obj)) }
@@ -45,5 +45,5 @@ const server=createServer(async(req,res)=>{
  }catch{return json(res,404,{error:'File unavailable.'})}
 })
 const port=Number(process.env.PORT||4173),host=process.env.HOST||'127.0.0.1'
-server.listen(port,host,()=>console.log('MARS//CONTROL ready at http://'+host+':'+server.address().port))
+server.listen(port,host,()=>console.log('Solstice Dynamics ready at http://'+host+':'+server.address().port))
 

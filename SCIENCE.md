@@ -18,6 +18,8 @@ The official [challenge Resources tab](https://www.spaceappschallenge.org/2026/c
 
 ## Observations and model boundaries
 
+The astronaut in the final sandstorm sequence wears a version of the [NASA Langley Z-2 spacesuit model](https://science.nasa.gov/3d-resources/z2-spacesuit/) animated for this game. The escape vehicle, blue sample, storm damage and flight sequence are fictional. The Z-2 is a visual reference independent of the challenge observation datasets.
+
 On 10 May 2024 GOES-P EXIS observed the Sun’s X3.9 flare from Earth orbit. The event began at 06:27 UTC, peaked at 06:54 and ended at 07:06. RadLab records a separate measurement from DosTel1 on the ISS on 1 April 2022 at 23:00 UTC of 9.815504 µGy/h. No Mars dose or particle arrival time was derived from either record. The game’s power costs, exposure penalties and alert timing are fictional.
 
 [NASA’s InSight storm report](https://www.nasa.gov/solar-system/nasas-insight-sees-power-levels-stabilize-after-dust-storm/) grounds the relationship between dust and available solar energy. [NASA’s life-support reference](https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/) informs the water recovery loop. The game’s solar voltages, wiring puzzle and pressure bands are illustrative instrument readouts. Simulated energy, crop and water budgets share the same colony state used for shift handover.

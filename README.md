@@ -1,36 +1,40 @@
-# MARS//CONTROL
+# Solstice Dynamics
 
 Team TerraVector’s playable entry project for **Build a Junior Astronaut Mission Trainer**, NASA Space Apps Challenge 2026. Command a four-person Mars outpost for seven sols. Explore the outpost on foot, operate its equipment and return the crew safely through seven sols.
 
 ## Play the included build
 
-The separate MARS-CONTROL.html download opens directly in a modern browser. It contains the entire game, including the scene and offline advisor. To regenerate it after a build, run npm run standalone. Browser storage support for file URLs varies. The local server provides a stable origin for autosave.
+Download **Solstice-Dynamics.html** from the [latest release](https://github.com/mightyxdrip-lgtm/Solstice-Dynamics/releases/latest), then open it in a modern browser. It contains the entire game, including the 3D scenes, spacesuit model and offline advisor. The release also contains direct previews of the rover sampling task and the two endings. To regenerate the game after a build, run `npm run standalone`. Browser storage support for file URLs varies. The local server provides a stable origin for autosave.
 
-For the local server, install Node.js 22.18 or later. From this directory run:
+For a GitHub checkout, install Node.js 22.18 or later. From this directory run:
 
 ```sh
+npm ci
+npm run build
 npm start
 ```
 
-Open **http://127.0.0.1:4173**. The included production build runs without a package install, internet connection, account or API key. Stop the server with Ctrl+C. The local server supports the optional Gemini advisor. Set `PORT` to select a different port and `HOST` when deploying to a host that requires another bind address.
+Open **http://127.0.0.1:4173**. The downloadable source archive includes a production build, so it can start with `npm start`. Once built, the game plays offline. Stop the server with Ctrl+C. The optional Gemini advisor uses `GEMINI_API_KEY` from the server environment. Set `PORT` to select a different port and `HOST` when deploying to a host that requires another bind address.
 
 ## First shift
 
-Click **Begin mission** on the rendered title screen. You wake up inside the habitat. Walk with WASD, look with the mouse, hold Shift to sprint and press E near the equipment you are facing. Escape pauses the mission and releases mouse capture. Arrow keys or click-and-drag also turn the view. Touch devices have movement buttons, drag-look and a tap-to-interact prompt.
+A standard Xbox or PlayStation controller works through the browser Gamepad API. Press a face button to activate it. Walk or steer with the left stick, look with the right stick and use the bottom face button (A or Cross) to interact. The triggers also drive and reverse. In a menu use the D-pad to move and the bottom button to choose. At equipment the bumpers select tools, the D-pad moves them, and the bottom button grabs or releases. Hold that button to drill at the survey site. Use B or Circle to go back and the Menu/Options button to pause during fieldwork.
+
+Watch the opening film or select **Skip intro** to reach the home screen. Choose **Play** to begin or **Resume** to continue a saved mission. A new mission starts inside the habitat. Walk with WASD, look with the mouse, hold Shift to sprint and use equipment when its **E** prompt appears. Press E or click the prompt. Equipment within arm's reach also works from the side; farther equipment must be in front. Escape pauses the mission and releases mouse capture. Arrow keys or click-and-drag also turn the view. Keyboard focus returns after menus close, and embedded browsers can use character-based key events when physical key codes are unavailable. Touch devices have movement buttons, drag-look and a tap-to-interact prompt. After 45 seconds of active searching, a yellow task sign appears through walls. An edge arrow guides you when the destination is off screen. Menus pause the timer, and reaching the equipment or moving to the next objective resets it.
 
 1. Follow the helmet marker to the EVA rack and equip your suit.
-2. Follow the objective bearing to the airlock at the far end of the corridor. Cycle it and walk to the solar array.
+2. Cycle the habitat airlock and follow the arrow to the rover. Press **E** to board. Drive with **W/S** and steer with **A/D**, or use the arrows. Follow the map flag into the survey ring. Tap the blue crystal, hold the drill control until the core comes out, then tap the rover’s sample tube to stow it. You can also aim with Left/Right and use **E** for each action. Drive the core home and place it in the lab tray to unlock the solar task. Each completed action is saved.
 3. Sample all three strings at junction J-2, identify the failed relay, then match both jumper leads or isolate the bad string. Walk to the separate power bus, match the load tester to the meter and dispatch the available power. An optional array extension immediately spends 3 kWh and two spares, adds a physical rack and increases clear-sky capacity by 8 kWh per sol.
 4. Return through the habitat airlock. At the mission console, review the shift, respond to the advisory and advance the sol.
 5. Later shifts require pressure-tap diagnosis, filter bypass adjustment, greenhouse lamp and irrigation control, shelter preparation, seal testing and final commissioning. The mission console accepts a handover after the field checks pass and an advisory response is selected. See [Field science and provenance](SCIENCE.md) for the data behind each mission.
 
 Open the **History**, **Log**, **Manual** and **AURA** tabs at the habitat mission console. The pause menu provides graphics quality and a confirmed restart. Fresh colonies can use a tested strategy of extending the array on Sol 1, taking the first advisory response each sol and keeping the greenhouse in its safe band on Sol 3. Keep one spare for the worn seal.
 
-The field instruments are built into their 3D equipment. Drag the metal probe to each contact, seat the shaped cable plugs, turn handwheels, slide the greenhouse controls and pull the breaker handles. A handle or plug only engages within its marked travel or matching socket. For keyboard operation, focus the 3D view, select a tool with Q/R, grab it with Enter, move it with the arrow keys, and press Enter to release. Escape leaves the instrument.
+The field instruments are built into their 3D equipment. Drag the metal probe to each contact, seat the shaped cable plugs, turn handwheels, slide the greenhouse controls and pull the breaker handles. A handle or plug only engages within its marked travel or matching socket. For keyboard operation, select a tool with Q/R, grab it with E or Enter, move it with WASD or the arrow keys, and press E or Enter to release. Tool selection restores game focus after opening Help. Escape leaves the instrument.
 
 ## Surface operations
 
-Three.js, React Three Fiber and Drei render the exterior and three walkable interiors using WebGL 2. The camera stands at 1.62 m, with a 0.29 m collision radius. First-person movement uses substeps and sliding collisions against the structures and interior furnishings. Procedural terrain supplies the ground heights. The pressure cycle transfers the player between exterior and interior spaces. Graphics quality adjusts rendering resolution and shadows. The astronaut casts an articulated sun shadow near the outpost on High. A terrain-following suit silhouette provides a shadow indoors, at long range and in Performance mode.
+Three.js, React Three Fiber and Drei render the exterior and three walkable interiors using WebGL 2. The camera stands at 1.62 m, with a 0.29 m collision radius. First-person movement uses substeps and sliding collisions against the structures and interior furnishings. Procedural terrain supplies the ground heights. The pressure cycle transfers the player between exterior and interior spaces. Graphics quality adjusts rendering resolution and shadows. High uses supersampled rendering, sharper terrain textures and an articulated sun shadow that follows the player across the surface. A terrain-following suit silhouette provides a shadow indoors and in Performance mode, which renders at native resolution.
 
 EVA oxygen and suit battery drain with elapsed play time outdoors. Sprinting increases both rates. Pressurized rooms refill the suit. An emergency return costs 6 kWh and 9 crew points. Opening a terminal or pausing suspends EVA consumption. The time compression and automatic return are training mechanics. Colony stores and weather advance one sol at a time. All four essential stores must stay above zero, crew condition at or above 60%, and equipment condition at or above 30%.
 
