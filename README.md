@@ -2,9 +2,59 @@
 
 Team TerraVector’s playable entry project for **Build a Junior Astronaut Mission Trainer**, NASA Space Apps Challenge 2026. Command a four-person Mars outpost for seven sols. Explore the outpost on foot, operate its equipment and return the crew safely through seven sols.
 
-## Play the included build
+## How to play
 
-Download **Solstice-Dynamics.html** from the [latest release](https://github.com/mightyxdrip-lgtm/Solstice-Dynamics/releases/latest), then open it in a modern browser. It contains the entire game, including the 3D scenes, spacesuit model and offline advisor. The release also contains direct previews of the rover sampling task and the two endings. To regenerate the game after a build, run `npm run standalone`. Browser storage support for file URLs varies. The local server provides a stable origin for autosave.
+1. Download **Solstice-Dynamics.html** from the [latest release](https://github.com/mightyxdrip-lgtm/Solstice-Dynamics/releases/latest).
+2. Open the downloaded file in Chrome, Edge or another browser with WebGL 2 enabled.
+3. Watch the intro or select **Skip intro**. On the home page, choose **Play** to begin the first shift or **Resume** to continue your saved mission.
+4. Follow the arrow at the top of the screen. Move close to the equipment and press **E**, click its prompt or press **A / Cross** on a controller.
+5. Complete the hands-on task, then follow the next arrow. Return to the habitat's mission console to finish each shift.
+
+The full game starts with the intro and home page. **Solstice-Dynamics-Rover-Survey.html** starts at the sampling site, and **Solstice-Dynamics-Final-Choice.html** starts at the ending decision.
+
+The full game includes its 3D models and offline advisor. Browser storage support for file URLs varies. For a stable autosave location, use the local server described below.
+
+### Controls
+
+| Action | Keyboard and mouse | Xbox / PlayStation controller |
+| --- | --- | --- |
+| Walk | W, A, S, D | Left stick |
+| Look around | Move or drag the mouse, or use arrow keys | Right stick |
+| Sprint | Hold Shift while moving | Hold left-stick click while moving |
+| Use nearby equipment / board rover | E, or click the on-screen prompt | A / Cross |
+| Drive / reverse | W / S, or Up / Down | Right / left trigger, or left stick |
+| Steer the rover | A / D, or Left / Right | Left stick |
+| Select an equipment tool | Q / R | Left / right bumper |
+| Grab / release a tool | E or Enter | A / Cross |
+| Move a grabbed tool | W, A, S, D or arrow keys | D-pad |
+| Select a rock | Click it, or Left / Right then E | D-pad then A / Cross |
+| Drill the rock | Hold E or the drill button | Hold A / Cross |
+| Stow / deliver the core | E, or click the action button | A / Cross |
+| Navigate menus | Click, or Tab then Enter | D-pad or left stick, then A / Cross |
+| Pause / return | Escape | Menu / Options or B / Circle |
+
+Connect a standard Xbox or PlayStation controller and press a face button to activate it. On a touchscreen, use the movement buttons, drag to look, and tap the equipment prompts. Hold the drill button to extract the sample.
+
+### Your first mission
+
+1. **Suit up.** Find the EVA rack in the habitat and equip your suit.
+2. **Go outside.** Use the airlock and follow the arrow to the rover.
+3. **Collect a sample.** Drive to the flag on the map, choose the blue crystal, hold the drill control until the core comes out, and stow it on the rover.
+4. **Bring it home.** Drive to the home marker and give the core to the lab.
+5. **Restore power.** Follow the arrow to the solar array, probe the contacts, fix or isolate the faulty connection, then check and route the power.
+6. **Finish the shift.** Return to the habitat's mission console, select a response to the advisory and advance to the next sol.
+
+Later shifts cover water recycling, plant care, radiation shelter preparation and habitat maintenance. Complete all seven shifts to reach the final sandstorm decision.
+
+### Finding your way and saving
+
+- The top-center arrow shows the next task and its distance. After 45 seconds of searching, a yellow task sign appears through walls.
+- Read the short action above the equipment and match the visible shapes, colors or marked positions. Open **Help** for more instructions.
+- Completed actions save automatically. Choose **Resume** on the home page to continue.
+- To start over, pause, choose **Restart mission**, then confirm replacing your save.
+- Return through an airlock before your suit oxygen or battery runs out.
+
+### Run from source
 
 For a GitHub checkout, install Node.js 22.18 or later. From this directory run:
 
@@ -16,11 +66,7 @@ npm start
 
 Open **http://127.0.0.1:4173**. The downloadable source archive includes a production build, so it can start with `npm start`. Once built, the game plays offline. Stop the server with Ctrl+C. The optional Gemini advisor uses `GEMINI_API_KEY` from the server environment. Set `PORT` to select a different port and `HOST` when deploying to a host that requires another bind address.
 
-## First shift
-
-A standard Xbox or PlayStation controller works through the browser Gamepad API. Press a face button to activate it. Walk or steer with the left stick, look with the right stick and use the bottom face button (A or Cross) to interact. The triggers also drive and reverse. In a menu use the D-pad to move and the bottom button to choose. At equipment the bumpers select tools, the D-pad moves them, and the bottom button grabs or releases. Hold that button to drill at the survey site. Use B or Circle to go back and the Menu/Options button to pause during fieldwork.
-
-Watch the opening film or select **Skip intro** to reach the home screen. Choose **Play** to begin or **Resume** to continue a saved mission. A new mission starts inside the habitat. Walk with WASD, look with the mouse, hold Shift to sprint and use equipment when its **E** prompt appears. Press E or click the prompt. Equipment within arm's reach also works from the side; farther equipment must be in front. Escape pauses the mission and releases mouse capture. Arrow keys or click-and-drag also turn the view. Keyboard focus returns after menus close, and embedded browsers can use character-based key events when physical key codes are unavailable. Touch devices have movement buttons, drag-look and a tap-to-interact prompt. After 45 seconds of active searching, a yellow task sign appears through walls. An edge arrow guides you when the destination is off screen. Menus pause the timer, and reaching the equipment or moving to the next objective resets it.
+### Detailed equipment walkthrough
 
 1. Follow the helmet marker to the EVA rack and equip your suit.
 2. Cycle the habitat airlock and follow the arrow to the rover. Press **E** to board. Drive with **W/S** and steer with **A/D**, or use the arrows. Follow the map flag into the survey ring. Tap the blue crystal, hold the drill control until the core comes out, then tap the rover’s sample tube to stow it. You can also aim with Left/Right and use **E** for each action. Drive the core home and place it in the lab tray to unlock the solar task. Each completed action is saved.
